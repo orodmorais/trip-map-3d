@@ -1,0 +1,43 @@
+# Rascunho do tema. Sem este arquivo, usa o preset padrão.
+preset: oahu                        # oahu (visual atual) | minimal | dark | retro-surf ...
+
+brand:
+  name: "O'ahu"
+  badge: "26"                       # selo marca-texto ao lado do nome
+  badge_style: highlighter          # highlighter | pill | none
+
+fonts:                              # nomes do Google Fonts / @fontsource
+  display: "Darumadrop One"         # o que aparece "de cara": marca, botões, legenda, pinos
+  display_thin: 0.038em             # afinamento por contorno (0 = desligado)
+  body: "Inter"                     # cartões e textos longos
+  mono: "IBM Plex Mono"             # horários, detalhes
+
+colors:
+  bg: "#E9E6DF"
+  card: "#FBFAF6"
+  ink: "#1C221E"
+  accent: "#C9E68E"
+  line: "#DCD7CB"
+
+map:                                # paleta da textura do relevo
+  land_low: "#C9D98F"
+  land_mid: "#86B56A"
+  land_high: "#3A6E44"
+  dry: "#D4C789"
+  sand: "#F1E3B8"
+  urban: "#D9D5CA"
+  sea_shallow: "#86D8CF"
+  sea_deep: "#2A73A6"
+  road: "#FBF6E8"
+  exaggeration: auto                # ou um número (ex.: 4)
+
+pins:
+  types:                            # cor e ícone por tipo (os não listados usam o padrão)
+    surf: {color: "#1F7FA6", icon: wave}
+    hike: {color: "#3F7A3A", icon: mountain}
+    food: {color: "#9A4E26", icon: plate}
+
+ui:
+  clouds: true
+  animated_sea: true
+  day_colors: auto                  # ou lista de cores por dia
