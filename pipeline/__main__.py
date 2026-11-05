@@ -1,13 +1,19 @@
-"""Command line: python -m pipeline check trip.yaml"""
+"""Command line: python -m pipeline check|build trip.yaml"""
 from __future__ import annotations
 
 import argparse
 import sys
 from pathlib import Path
 
+import rasterio
+import requests
+
 from .geocode import DEFAULT_GEOCODER, load_lock, photon_searcher, resolve_places, save_lock, timezone_for
 from .regions import assign_days, build_maps
 from .schema import TripError, load_trip
+from .terrain import TerrainError, cached_terrain, write_terrain
+
+CACHE_DIR = Path(".cache")
 
 
 def prepare(path: Path) -> tuple[dict, list[str]]:
@@ -32,17 +38,31 @@ def prepare(path: Path) -> tuple[dict, list[str]]:
     return {**trip, "places": places, "maps": timed, "days": days}, trip["warnings"] + report
 
 
+def build(trip: dict, out_dir: Path) -> list[str]:
+    notes: list[str] = []
+    for item in trip["maps"]:
+        terrain, terrain_notes = cached_terrain(item["bbox"], CACHE_DIR)
+        write_terrain(terrain, out_dir / "data" / item["id"])
+        meta = terrain["meta"]
+        notes += [f'map "{item["title"]}": {note}' for note in terrain_notes]
+        notes.append(f'map "{item["title"]}": grid {meta["NX"]}x{meta["NY"]}, vertical exaggeration {meta["exaggeration"]}x')
+    return notes
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(prog="pipeline", description="Build a 3D trip map website.")
-    parser.add_argument("command", choices=["check"])
+    parser.add_argument("command", choices=["check", "build"])
     parser.add_argument("trip", type=Path)
+    parser.add_argument("--out", type=Path, default=Path("dist"))
     args = parser.parse_args()
     try:
-        _, report = prepare(args.trip)
+        trip, report = prepare(args.trip)
+        if args.command == "build":
+            report += build(trip, args.out)
     except TripError as exc:
         print("\n".join(f"ERROR: {e}" for e in exc.errors), file=sys.stderr)
         return 1
-    except LookupError as exc:
+    except (LookupError, TerrainError, requests.RequestException, rasterio.errors.RasterioIOError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
     print("\n".join(report))
