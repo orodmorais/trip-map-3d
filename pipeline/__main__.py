@@ -3,17 +3,20 @@ from __future__ import annotations
 
 import argparse
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-
-import rasterio
-import requests
 
 from .geocode import DEFAULT_GEOCODER, load_lock, photon_searcher, resolve_places, save_lock, timezone_for
 from .regions import assign_days, build_maps
+from .scene import build_scene, write_scene
 from .schema import TripError, load_trip
 from .terrain import TerrainError, cached_terrain, write_terrain
+from .texture import paint, write_texture
+from .theme import load_theme
+from .vectors import cached_vectors
 
 CACHE_DIR = Path(".cache")
+MAP_WORKERS = 3
 
 
 def prepare(path: Path) -> tuple[dict, list[str]]:
@@ -38,15 +41,26 @@ def prepare(path: Path) -> tuple[dict, list[str]]:
     return {**trip, "places": places, "maps": timed, "days": days}, trip["warnings"] + report
 
 
-def build(trip: dict, out_dir: Path) -> list[str]:
-    notes: list[str] = []
-    for item in trip["maps"]:
-        terrain, terrain_notes = cached_terrain(item["bbox"], CACHE_DIR)
-        write_terrain(terrain, out_dir / "data" / item["id"])
-        meta = terrain["meta"]
-        notes += [f'map "{item["title"]}": {note}' for note in terrain_notes]
-        notes.append(f'map "{item["title"]}": grid {meta["NX"]}x{meta["NY"]}, vertical exaggeration {meta["exaggeration"]}x')
-    return notes
+def build_map(item: dict, theme: dict, out_dir: Path) -> list[str]:
+    terrain, notes = cached_terrain(item["bbox"], CACHE_DIR)
+    vectors = cached_vectors(item["bbox"], CACHE_DIR)
+    chosen = theme["map"].get("exaggeration", "auto")
+    meta = terrain["meta"] if chosen == "auto" else {**terrain["meta"], "exaggeration": float(chosen)}
+    terrain = {**terrain, "meta": meta}
+    image, ocean = paint(terrain, vectors, theme["map"])
+    folder = out_dir / "data" / item["id"]
+    write_terrain({**terrain, "meta": {**meta, "ocean": ocean}}, folder)
+    write_texture(image, folder)
+    write_scene(build_scene(terrain, vectors), folder)
+    title = f'map "{item["title"]}"'
+    return [f"{title}: {note}" for note in notes] + [
+        f'{title}: grid {meta["NX"]}x{meta["NY"]}, vertical exaggeration {meta["exaggeration"]}x']
+
+
+def build(trip: dict, theme: dict, out_dir: Path) -> list[str]:
+    with ThreadPoolExecutor(MAP_WORKERS) as pool:
+        results = pool.map(lambda item: build_map(item, theme, out_dir), trip["maps"])
+    return [line for lines in results for line in lines]
 
 
 def main() -> int:
@@ -58,11 +72,11 @@ def main() -> int:
     try:
         trip, report = prepare(args.trip)
         if args.command == "build":
-            report += build(trip, args.out)
+            report += build(trip, load_theme(args.trip.with_name("theme.yaml")), args.out)
     except TripError as exc:
         print("\n".join(f"ERROR: {e}" for e in exc.errors), file=sys.stderr)
         return 1
-    except (LookupError, TerrainError, requests.RequestException, rasterio.errors.RasterioIOError) as exc:
+    except (LookupError, TerrainError, OSError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
     print("\n".join(report))

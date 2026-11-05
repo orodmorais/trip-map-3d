@@ -84,9 +84,9 @@ Against the hand-built O'ahu DEM on the same grid: median difference about 7 m f
 ## Roads, buildings, towns, runways: Overture Maps
 
 - Access: `overturemaps` Python package (2.0.0), which reads GeoParquet from public cloud storage by bounding box. No account, no shared-server queue.
-- Measured on Rio (about 26 by 18 km): roads 41 902 segments in 3 s, buildings 348 571 in 7 s (57 312 with height). The same run took 12 s for a smaller road box once, so expect some variation.
+- Measured on Rio (about 26 by 18 km): roads 41 902 segments in 3 s, buildings 348 571 in 7 s (57 312 with height). Use `stac=True`: without it the Python reader took 28 s and 64 s instead of 3 s and 5 s.
 - Overpass, for comparison: `out geom` of main roads on a smaller Rio box took 37.5 s.
-- `land_cover`, `land_use`, `water`, `infrastructure` and `division` themes also exist. Fitness for runways and town labels is **not verified yet**: check in M3.
+- Also used: `water` (rivers, skipping intermittent ones), `infrastructure` (runways) and `division` (town and neighborhood labels), verified on five regions.
 - Weight: `pyarrow` makes the whole environment about 380 MB, relevant for CI time.
 - **Required attribution:** `© OpenStreetMap contributors, Overture Maps Foundation`. Roads and buildings themes are under ODbL. The buildings theme also carries Esri and Google data under CC BY 4.0.
 - **ODbL consequence:** a site's `dist/` containing road or building coordinates holds a derivative database, which stays under ODbL. The credits must say the data is available under ODbL, linking to https://www.openstreetmap.org/copyright. The MIT license covers only the code.
