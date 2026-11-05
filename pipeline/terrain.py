@@ -117,10 +117,11 @@ def read_tile(url: str, shift: float, bbox: dict, width: int, height: int,
             part = wanted.intersection(Window(0, 0, src.width, src.height))
         except WindowError:
             return None
-        col0 = round((part.col_off - wanted.col_off) / wanted.width * width)
-        row0 = round((part.row_off - wanted.row_off) / wanted.height * height)
-        cols = min(width - col0, max(1, round(part.width / wanted.width * width)))
-        rows = min(height - row0, max(1, round(part.height / wanted.height * height)))
+        # floor and ceil: neighboring tiles overlap by a pixel instead of leaving a gap between them
+        col0 = math.floor((part.col_off - wanted.col_off) / wanted.width * width)
+        row0 = math.floor((part.row_off - wanted.row_off) / wanted.height * height)
+        cols = min(width, math.ceil((part.col_off + part.width - wanted.col_off) / wanted.width * width)) - col0
+        rows = min(height, math.ceil((part.row_off + part.height - wanted.row_off) / wanted.height * height)) - row0
         # reading into a smaller shape makes GDAL use the file's overviews: 30x faster than warping
         return row0, col0, src.read(1, window=part, out_shape=(rows, cols), resampling=resampling, out_dtype=dtype)
 
