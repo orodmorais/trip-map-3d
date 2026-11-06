@@ -12,9 +12,11 @@ from .routes import DEFAULT_ROUTER, osrm_router, route_days
 from .scene import build_scene, write_scene
 from .schema import TripError, load_trip
 from .site import assemble
+from .surf import attach_spots, load_spots
 from .terrain import TerrainError, cached_terrain, write_terrain
 from .texture import fade_to, paint, write_texture
 from .theme import load_theme
+from .tides import build_tides
 from .vectors import cached_vectors
 
 CACHE_DIR = Path(".cache")
@@ -89,7 +91,11 @@ def build(trip: dict, theme: dict, trip_path: Path, out_dir: Path) -> list[str]:
     with ThreadPoolExecutor(MAP_WORKERS) as pool:
         results = pool.map(lambda item: build_map(item, theme, out_dir), jobs)
     notes = [line for lines in results for line in lines]
-    return notes + assemble(trip, theme, trip_path.parent, out_dir, CACHE_DIR)
+    if trip["modules"]["surf"] and trip["surf_spots"]:
+        trip, spot_notes = attach_spots(trip, load_spots(trip_path.parent / trip["surf_spots"]))
+        notes += spot_notes
+    tides = build_tides(trip) if trip["modules"]["tides"] else None
+    return notes + assemble(trip, theme, tides, trip_path.parent, out_dir, CACHE_DIR)
 
 
 def main() -> int:

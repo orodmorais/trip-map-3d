@@ -16,6 +16,7 @@ from PIL import Image, ImageDraw, ImageOps
 
 from .geocode import USER_AGENT
 from .schema import slug
+from .tides import write_tides
 
 SITE_DIR = Path(__file__).resolve().parent.parent / "site"
 PHOTO_MAX_PX = 1400
@@ -144,7 +145,7 @@ def site_places(trip: dict, photos: frozenset[str]) -> list[dict]:
         for item in day["items"]:
             if item["place"]:
                 items.setdefault(item["place"], []).append({"day": day["n"], "time": item["time"], "text": item["text"]})
-    keep = ("id", "name", "lat", "lon", "type", "desc", "tip", "photo_focus", "model", "camera", "map")
+    keep = ("id", "name", "lat", "lon", "type", "desc", "tip", "photo_focus", "model", "camera", "map", "spot")
     return [{**{k: p.get(k) for k in keep}, "photo": p["id"] in photos, "maps": p.get("maps") or p["query"],
              "items": items.get(p["id"], [])} for p in trip["places"]]
 
@@ -226,13 +227,14 @@ def copy_trip_files(trip: dict, trip_dir: Path, out_dir: Path) -> list[str]:
     return notes
 
 
-def assemble(trip: dict, theme: dict, trip_dir: Path, out_dir: Path, cache_dir: Path) -> list[str]:
+def assemble(trip: dict, theme: dict, tides: dict | None, trip_dir: Path, out_dir: Path, cache_dir: Path) -> list[str]:
     shutil.copytree(SITE_DIR, out_dir, dirs_exist_ok=True)
     (out_dir / "data").mkdir(parents=True, exist_ok=True)
     faces, font_names = install_fonts(theme, out_dir, cache_dir)
     (out_dir / "data" / "theme.css").write_text(theme_css(theme, faces), encoding="utf-8")
     photos = frozenset(p["id"] for p in trip["places"] if p.get("photo") and (trip_dir / p["photo"]).exists())
     data = site_data(trip, theme, font_names, photos)
+    write_tides(tides, out_dir)
     (out_dir / "data" / "trip.js").write_text(
         "window.TRIP=" + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";\n", encoding="utf-8")
     for page in ("index.html", "roteiro.html"):
