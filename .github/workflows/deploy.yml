@@ -18,6 +18,8 @@ concurrency:
 env:
   # a repository variable can point to another trip, like the demo of this repo does
   TRIP_FILE: ${{ vars.TRIP_FILE || 'trip.yaml' }}
+  # more trips in subfolders of the same site, as folder=path/to/trip.yaml pairs
+  EXTRA_TRIPS: ${{ vars.EXTRA_TRIPS }}
 
 jobs:
   build:
@@ -39,12 +41,15 @@ jobs:
           restore-keys: map-data-
 
       - name: Build the site
-        run: python -m pipeline build "$TRIP_FILE" --out dist
+        run: |
+          python -m pipeline build "$TRIP_FILE" --out dist
+          for demo in $EXTRA_TRIPS; do
+            python -m pipeline build "${demo#*=}" --out "dist/${demo%%=*}"
+          done
 
       - name: Save looked-up places
         run: |
-          lock="$(dirname "$TRIP_FILE")/trip.lock.json"
-          git add "$lock"
+          git add -- '*trip.lock.json'
           git diff --cached --quiet && exit 0
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

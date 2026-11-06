@@ -1,16 +1,16 @@
-# Rascunho do tema. Sem este arquivo, usa o preset padrão.
+# Every theme option. Without this file the site uses the oahu preset.
 preset: oahu                        # oahu (warm paper) | minimal | dark
 
 brand:
   name: "O'ahu"
-  badge: "26"                       # selo marca-texto ao lado do nome
-  badge_style: highlighter
+  badge: "26"                       # small label next to the name
+  badge_style: highlighter           # highlighter | pill | none
 
-fonts:                              # nomes do Google Fonts / @fontsource
-  display: "Darumadrop One"         # o que aparece "de cara": marca, botões, legenda, pinos
-  display_thin: 0.038em             # afinamento por contorno (0 = desligado)
-  body: "Inter"                     # cartões e textos longos
-  mono: "IBM Plex Mono"             # horários, detalhes
+fonts:                              # Google Font names, from @fontsource
+  display: "Darumadrop One"         # what you see first: brand, buttons, pins
+  display_thin: 0.038em             # thins the letters with an outline (0 = off)
+  body: "Inter"                     # cards and long text
+  mono: "IBM Plex Mono"             # times and details
 
 colors:
   bg: "#E9E6DF"
@@ -19,7 +19,7 @@ colors:
   accent: "#C9E68E"
   line: "#DCD7CB"
 
-map:                                # paleta da textura do relevo
+map:                                # colors of the map
   land_low: "#C9D98F"
   land_mid: "#86B56A"
   land_high: "#3A6E44"
@@ -29,10 +29,10 @@ map:                                # paleta da textura do relevo
   sea_shallow: "#86D8CF"
   sea_deep: "#2A73A6"
   road: "#FBF6E8"
-  exaggeration: auto                # ou um número (ex.: 4)
+  exaggeration: auto                # or a number, like 4
 
 pins:
-  types:                            # cor e ícone por tipo (os não listados usam o padrão)
+  types:                            # color and icon by type
     surf: {color: "#1F7FA6", icon: wave}
     hike: {color: "#3F7A3A", icon: mountain}
     food: {color: "#9A4E26", icon: plate}
@@ -40,4 +40,4 @@ pins:
 ui:
   clouds: true
   animated_sea: true
-  day_colors: auto                  # ou lista de cores por dia
+  day_colors: auto                  # or a list of colors, one per day
