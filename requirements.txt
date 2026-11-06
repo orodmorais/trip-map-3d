@@ -6,4 +6,3 @@ requests
 rasterio
 overturemaps
 shapely
-pytest
