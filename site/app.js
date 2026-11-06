@@ -3,7 +3,10 @@ import * as THREE from 'three';
 import { OrbitControls } from './vendor/OrbitControls.js';
 import { buildWorld } from './world.js';
 import { MODEL_HEIGHT } from './landmarks.js';
+import { createCallouts } from './callouts.js';
+import { createCards } from './cards.js';
 import { createFraming } from './framing.js';
+import { createRoutes } from './routes3d.js';
 import { initSearch } from './search.js';
 import { initWeather } from './weather.js';
 import { initLive } from './live.js';
@@ -142,6 +145,8 @@ let showToken = 0;
 /* ---------------- camera ---------------- */
 const DEF_DIR = new THREE.Vector3(0, 0.74, 0.67);
 const PORTRAIT = 0.8;
+const MIN_FPS = 24;
+const SPEED_SAMPLE_MS = 4000;
 const NEAR_SHARE = 0.2;
 const MAX_HOME_DISTANCE = 290;
 const NORTH_UP = new THREE.Vector3(0, 0.78, 0.62).normalize();
@@ -224,6 +229,10 @@ addEventListener('resize', () => {
 });
 
 function placeFor(route, pinIds, animate = true) {
+  if (!route.length && !pinIds.length) {
+    // a day with no places, like a rest day: the card opens and the view stays
+    return;
+  }
   const L = layoutFor(route, pinIds);
   card.style.cssText = `left:${L.card.x}px;top:${L.card.y}px;width:${L.card.w}px;max-height:${L.card.h}px;right:auto;bottom:auto`;
   if (animate) flyTo(L.target, L.dist, 1000, false, DEF_DIR.clone());
@@ -246,97 +255,23 @@ $('#zout').onclick = () =>
 $('#zhome').onclick = () => go(activeMap && activeMap !== OVERVIEW ? 'mapa-' + activeMap.id : '');
 
 /* ---------------- routes ---------------- */
-const routes = [];
-let routeAnimation = null;
-const LINE_LIFT = 0.3;
-const TUBE_NEAR = 42; // closer than this, the thick route would cover the map
-
-function tube(points, radius, material, drop = 0) {
-  const curve = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(p.x, p.y - drop, p.z)));
-  return new THREE.Mesh(new THREE.TubeGeometry(curve, points.length, radius, 10, false), material);
-}
-function addRoute(day, base, color, lifted = true) {
-  const curve = new THREE.CatmullRomCurve3(base, false, 'centripetal');
-  const points = curve
-    .getSpacedPoints(Math.max(200, base.length * 8))
-    .map(v => new THREE.Vector3(v.x, lifted ? Math.max(0, WORLD.yAt(v.x, v.z)) + LINE_LIFT : v.y, v.z));
-  const material = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.25, roughness: 0.5 });
-  const outline = new THREE.MeshStandardMaterial({ color: T.palette.card, roughness: 0.6 });
-  const parts = [
-    tube(points, 0.17, material),
-    tube(points, 0.27, outline, 0.14),
-    tube(points, 0.07, material, 0.2),
-    tube(points, 0.115, outline, 0.27),
-  ];
-  parts.forEach(part => {
-    part.visible = false;
-    worldRoot.add(part);
-  });
-  parts[0].castShadow = lifted;
-  routes.push({
-    day,
-    parts,
-    on: false,
-    total: parts[0].geometry.index.count,
-    pts: points.filter((_, i) => i % 12 === 0),
-  });
-}
-function buildRoutes() {
-  routes.length = 0;
-  if (activeMap === OVERVIEW) return buildTripArcs();
-  for (const day of T.days)
-    for (const leg of day.legs) {
-      if (leg.map !== activeMap.id || leg.line.length < 2) continue;
-      addRoute(
-        day.n,
-        leg.line.map(([lat, lon]) => {
-          const v = WORLD.W3(lat, lon);
-          return new THREE.Vector3(v.x, 0, v.z);
-        }),
-        day.color,
-      );
-    }
-}
-function buildTripArcs() {
-  const seen = new Set();
-  for (const day of T.days) {
-    const previous = T.days[day.n - 2];
-    const chain = [...(previous ? [previous.legs.at(-1)?.map ?? previous.map] : []), ...day.legs.map(leg => leg.map)];
-    for (let i = 1; i < chain.length; i++) {
-      const key = chain[i - 1] + chain[i];
-      if (chain[i - 1] === chain[i] || seen.has(key)) continue;
-      seen.add(key);
-      const a = WORLD.W3(...mapById[chain[i - 1]].center),
-        b = WORLD.W3(...mapById[chain[i]].center);
-      const middle = a.clone().add(b).multiplyScalar(0.5);
-      middle.y = Math.max(a.y, b.y) + a.distanceTo(b) * 0.25;
-      addRoute(day.n, [a, middle, b], day.color, false);
-    }
-  }
-}
-function showRoute(n) {
-  routeAnimation = null;
-  for (const route of routes) {
-    route.on = route.day === n;
-    if (route.on) {
-      route.parts.forEach(part => part.geometry.setDrawRange(0, 0));
-      routeAnimation = { t0: performance.now() };
-    }
-  }
-}
-function routeDetail(cameraDistance) {
-  const near = cameraDistance < TUBE_NEAR;
-  const showAllArcs = activeMap === OVERVIEW && !state.day;
-  for (const route of routes) {
-    const visible = route.on || showAllArcs;
-    route.parts[0].visible = route.parts[1].visible = visible && !near;
-    route.parts[2].visible = route.parts[3].visible = visible && near;
-  }
-}
-const dayLine = n => {
-  const line = routes.filter(route => route.day === n).flatMap(route => route.pts);
-  return line.length ? line : dayStops(n).map(id => placeById[id].v);
-};
+const {
+  buildRoutes,
+  showRoute,
+  routeDetail,
+  dayLine,
+  animate: animateRoutes,
+} = createRoutes({
+  T,
+  state,
+  root: worldRoot,
+  world: () => WORLD,
+  map: () => activeMap,
+  isOverview: () => activeMap === OVERVIEW,
+  mapById,
+  placeById,
+  dayStops: n => dayStops(n),
+});
 
 /* ---------------- overlays ---------------- */
 const overlay = $('#overlay'),
@@ -344,8 +279,7 @@ const overlay = $('#overlay'),
 const pinEls = {},
   regionEls = {};
 const clusterPool = [],
-  nodeTowns = [],
-  calloutPool = [];
+  nodeTowns = [];
 const screenPoint = new THREE.Vector3();
 function scr(vector) {
   screenPoint.copy(vector).project(camera);
@@ -397,16 +331,6 @@ T.stories.forEach(story =>
   regionLabel(story.id, story.title, t('storyAria', { t: story.title }), 'regiao-' + story.id),
 );
 if (T.overview) T.maps.forEach(m => regionLabel(m.id, m.title, t('viewMap', { t: m.title }), 'mapa-' + m.id));
-function calloutEl(i) {
-  if (!calloutPool[i]) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'callout';
-    overlay.appendChild(button);
-    calloutPool[i] = button;
-  }
-  return calloutPool[i];
-}
 const regions = () =>
   activeMap === OVERVIEW
     ? T.maps.map(m => ({ id: m.id, v: WORLD.W3(m.center[0], m.center[1], 0.5), near: 0 }))
@@ -570,83 +494,20 @@ function layout() {
   layoutCallouts(strong);
   live.layout();
 }
-function layoutCallouts(strong) {
-  let lines = '',
-    used = 0;
-  if (state.day && innerWidth > MOBILE_WIDTH && !state.sel && !state.story && activeMap !== OVERVIEW) {
-    const W = 204,
-      H = 196,
-      placed = [];
-    const blocked = [
-      { x: innerWidth - 232, y: 60, w: 232, h: 220 },
-      { x: innerWidth / 2 - 370, y: innerHeight - 80, w: 740, h: 80 },
-    ];
-    if (!card.hidden) {
-      const box = card.getBoundingClientRect();
-      blocked.push({ x: box.left - 10, y: box.top - 10, w: box.width + 20, h: box.height + 20 });
-    }
-    const line = [];
-    const points = dayLine(state.day).map(scr);
-    points.forEach((a, i) => {
-      const b = points[Math.min(i + 1, points.length - 1)];
-      for (let k = 0; k < 6; k++) line.push({ x: a.x + ((b.x - a.x) * k) / 6, y: a.y + ((b.y - a.y) * k) / 6 });
-    });
-    const hits = r =>
-      placed
-        .concat(blocked, strong)
-        .some(box => r.x < box.x + box.w && box.x < r.x + r.w && r.y < box.y + box.h && box.y < r.y + r.h);
-    for (const place of dayStops(state.day)
-      .map(id => placeById[id])
-      .filter(p => p.photo)
-      .slice(0, 3)) {
-      const s = scr(place.v);
-      if (!s.ok) continue;
-      let pick = null;
-      for (const [ox, oy] of [
-        [70, -H - 40],
-        [-W - 70, -H - 40],
-        [90, -H / 2],
-        [-W - 90, -H / 2],
-        [70, 40],
-        [-W - 70, 40],
-        [230, -H - 20],
-        [-W - 230, -H - 20],
-        [260, 20],
-        [-W - 260, 20],
-      ]) {
-        const r = { x: s.x + ox, y: s.y + oy, w: W, h: H };
-        if (r.x < 16 || r.y < 76 || r.x + W > innerWidth - 12 || r.y + H > innerHeight - 12 || hits(r)) continue;
-        if (line.some(q => q.x > r.x - 8 && q.x < r.x + W + 8 && q.y > r.y - 8 && q.y < r.y + H + 8)) continue;
-        pick = r;
-        break;
-      }
-      if (!pick) continue;
-      placed.push(pick);
-      const callout = calloutEl(used);
-      callout.style.display = '';
-      callout.style.transform = `translate(${pick.x}px,${pick.y}px)`;
-      if (callout.dataset.id !== place.id) {
-        callout.dataset.id = place.id;
-        callout.innerHTML = `<b>${esc(place.name)}</b><img src="img/${place.id}.jpg" alt="" style="object-position:${esc(place.photo_focus || 'center')}"><small>${esc(
-          place.items
-            .filter(i => i.day === state.day)
-            .map(i => i.time)
-            .join(' · '),
-        )}</small>`;
-        callout.onclick = event => {
-          event.stopPropagation();
-          go('lugar-' + place.id);
-        };
-      }
-      const ax = pick.x + (s.x > pick.x + W ? W : s.x < pick.x ? 0 : W / 2),
-        ay = pick.y + (s.y > pick.y + H ? H : s.y < pick.y ? 0 : H / 2);
-      lines += `<line x1="${ax}" y1="${ay}" x2="${s.x}" y2="${s.y}"/>`;
-      used++;
-    }
-  }
-  for (let i = used; i < calloutPool.length; i++) calloutPool[i].style.display = 'none';
-  leaders.innerHTML = lines;
-}
+const layoutCallouts = createCallouts({
+  card,
+  state,
+  overlay,
+  leaders,
+  scr,
+  dayLine,
+  dayStops,
+  placeById,
+  isOverview: () => activeMap === OVERVIEW,
+  esc,
+  go,
+  mobileWidth: MOBILE_WIDTH,
+});
 
 /* ---------------- switching maps ---------------- */
 async function showMap(id) {
@@ -671,6 +532,7 @@ async function showMap(id) {
     wanted.id,
     places,
     T.custom_landmarks && wanted !== OVERVIEW,
+    T.ui,
   );
   if (token !== showToken) {
     world.dispose();
@@ -701,9 +563,28 @@ async function showMap(id) {
 }
 
 /* ---------------- main loop ---------------- */
+// a phone that cannot keep up gets a lighter picture instead of a slideshow
+let sampleStart = 0,
+  sampleFrames = 0,
+  lightMode = false;
+function watchSpeed(now) {
+  if (lightMode || document.hidden) return;
+  if (!sampleStart) sampleStart = now;
+  sampleFrames++;
+  if (now - sampleStart < SPEED_SAMPLE_MS) return;
+  const speed = (sampleFrames * 1000) / (now - sampleStart);
+  sampleStart = now;
+  sampleFrames = 0;
+  if (speed >= MIN_FPS) return;
+  lightMode = true;
+  renderer.setPixelRatio(1);
+  renderer.setSize(innerWidth, innerHeight, false);
+  sun.castShadow = false;
+}
 function frame(now) {
   requestAnimationFrame(frame);
   if (!WORLD) return;
+  watchSpeed(now);
   stepFly(now);
   controls.update();
   const distance = camera.position.distanceTo(controls.target);
@@ -717,15 +598,7 @@ function frame(now) {
   scene.fog.far = distance + 300;
   routeDetail(distance);
   WORLD.tick(now, distance);
-  if (routeAnimation) {
-    const k = Math.min(1, (now - routeAnimation.t0) / 1600);
-    for (const route of routes)
-      if (route.on) {
-        const count = Math.floor((route.total * k) / 3) * 3;
-        route.parts.forEach(part => part.geometry.setDrawRange(0, count));
-      }
-    if (k >= 1) routeAnimation = null;
-  }
+  animateRoutes(now);
   renderer.render(scene, camera);
   layout();
 }
@@ -783,24 +656,10 @@ function pressDay(key) {
 }
 
 /* ---------------- cards ---------------- */
-const tag = type => `<span class="tag" style="background:${tagBackground(type)}">${esc(typeName(type))}</span>`;
 function bindGo(element) {
   element.querySelectorAll('[data-go]').forEach(button => {
     button.onclick = () => go(button.dataset.go);
   });
-}
-function openCard(content, photo, focus) {
-  card.hidden = false;
-  card.style.cssText = '';
-  card.className = 'card' + (photo ? '' : ' nophoto');
-  card.innerHTML =
-    (photo
-      ? `<div class="ph"><img src="img/${photo}.jpg" alt="" style="object-position:${esc(focus || 'center')}"></div>`
-      : '') +
-    `<div class="body">${content}</div><button type="button" class="close" id="closeCard" aria-label="${esc(t('close'))}">✕</button>`;
-  document.body.classList.add('card-open');
-  $('#closeCard').onclick = closeCard;
-  bindGo(card);
 }
 function closeCard() {
   card.hidden = true;
@@ -809,61 +668,6 @@ function closeCard() {
   if (state.sel || state.story) go(state.day ? 'dia-' + state.day : homeHash());
 }
 const homeHash = () => (activeMap && activeMap !== OVERVIEW ? 'mapa-' + activeMap.id : '');
-function cardPlace(place) {
-  const items = place.items.slice().sort((a, b) => a.day - b.day);
-  const tags = [
-    tag(place.type),
-    ...[...new Set(items.map(i => i.day))].map(
-      n => `<span class="tag" style="background:#F1EEE6">${esc(t('day', { n }))}</span>`,
-    ),
-  ];
-  const when = items.length
-    ? `<ul class="when">${items.map(i => `<li><button type="button" data-go="dia-${i.day}" style="background:${dayByNumber(i.day).color}">${esc(t('day', { n: i.day }))}${i.time ? ' · ' + esc(i.time) : ''}</button><span>${esc(i.text)}</span></li>`).join('')}</ul>`
-    : '';
-  openCard(
-    `<p class="kicker">${esc(typeName(place.type))}</p><h2 id="cardTitle">${esc(place.name)}</h2>${place.desc ? `<p>${esc(place.desc)}</p>` : ''}
-    <div id="cpl">${surf?.placeHTML(place) ?? ''}</div>
-    ${place.tip ? `<p style="color:var(--ink)"><b>${esc(t('tip'))}</b> ${esc(place.tip)}</p>` : ''}
-    <div class="tags">${tags.join('')}</div>${when}
-    <div class="actions"><a class="btn primary" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.maps)}" target="_blank" rel="noopener">${esc(t('openMaps'))}</a><a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lon}&travelmode=driving" target="_blank" rel="noopener">${esc(t('routeHere'))}</a></div>`,
-    place.photo ? place.id : null,
-    place.photo_focus,
-  );
-}
-function cardStory(story) {
-  openCard(
-    `<p class="kicker">${esc(t('storyOf'))}</p><h2 id="cardTitle">${esc(story.title)}</h2>${story.story.map(s => `<p>${esc(s)}</p>`).join('')}
-    <div class="tags">${(story.places || [])
-      .filter(id => placeById[id])
-      .map(
-        id =>
-          `<button type="button" class="tag" style="background:#EEF4E2;cursor:pointer" data-go="lugar-${id}">${esc(placeById[id].name)}</button>`,
-      )
-      .join('')}</div>`,
-    null,
-  );
-}
-function cardDay(n) {
-  const day = dayByNumber(n);
-  const items = day.items
-    .map(
-      i =>
-        `<li><span class="t">${esc(i.time)}</span><span><span class="chip" style="background:${typeColor(i.type)}">${esc(typeName(i.type))}</span>${i.place ? `<button type="button" data-go="lugar-${i.place}">${esc(i.text)}</button>` : esc(i.text)}</span></li>`,
-    )
-    .join('');
-  const legs = day.crosses
-    ? `<p>${esc(t('crossing'))}</p><div class="tags">${day.legs.map(leg => `<button type="button" class="tag" style="background:#EEF4E2;cursor:pointer" data-go="dia-${n}-${leg.map}">${esc(mapById[leg.map].title)}</button>`).join('')}</div>`
-    : '';
-  const title = `<span style="color:${day.color}">${esc(t('day', { n }))}</span>${day.title ? ' · ' + esc(day.title) : ''}`;
-  openCard(
-    `<p class="kicker">${esc(fmtDate(day.date))} · ${esc(day.area)}</p><h2 id="cardTitle">${title}</h2><div id="chj">${live.dayHTML(n)}</div><div id="cdy">${weather.dayHTML(n)}</div>${legs}
-    <ul class="list">${items}</ul>
-    <div class="actions">${n > 1 ? `<button type="button" class="btn" data-go="dia-${n - 1}">← ${esc(t('day', { n: n - 1 }))}</button>` : ''}${n < T.days.length ? `<button type="button" class="btn" data-go="dia-${n + 1}">${esc(t('day', { n: n + 1 }))} →</button>` : ''}<a class="btn primary" href="roteiro.html#dia-${n}">${esc(t('viewItinerary'))}</a></div>`,
-    null,
-  );
-  card.classList.add('is-day');
-  live.decorateDayList(n);
-}
 addEventListener('keydown', event => {
   if (event.key !== 'Escape') return;
   if (search.isOpen()) {
@@ -895,6 +699,22 @@ overlay.addEventListener(
   },
   { passive: false },
 );
+
+const { cardPlace, cardStory, cardDay } = createCards({
+  T,
+  placeById,
+  $,
+  esc,
+  card,
+  bindGo,
+  closeCard,
+  modules: () => ({ live, weather, surf }),
+  typeName,
+  typeColor,
+  tagBackground,
+  dayByNumber,
+  mapById,
+});
 
 /* ---------------- credits ---------------- */
 {
@@ -1074,3 +894,10 @@ requestAnimationFrame(frame);
 addEventListener('hashchange', route);
 live.autoToday();
 window.__ready = true;
+if (location.search.includes('debug')) {
+  // read by tools/check_trip.py
+  window.__debug = {
+    route: () => (state.day ? dayLine(state.day).map(scr) : []),
+    places: () => activePlaces.map(place => ({ name: place.name, ...scr(place.v) })),
+  };
+}

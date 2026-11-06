@@ -36,7 +36,7 @@ function seededRandom(seed = 11) {
   return () => (state = (state * 16807) % 2147483647) / 2147483647;
 }
 
-export async function buildWorld(root, renderer, isSmall, mapId, places, customLandmarks) {
+export async function buildWorld(root, renderer, isSmall, mapId, places, customLandmarks, ui = {}) {
   const dir = `data/${mapId}/`;
   const [META, heightBuffer, coastBuffer, SCENE] = await Promise.all([
     fetchJson(dir + 'dem.json'),
@@ -52,7 +52,8 @@ export async function buildWorld(root, renderer, isSmall, mapId, places, customL
     KY = META.km_y * META.scale;
   const STEP = META.height_step_m;
   const LIFT = (META.scale * META.exaggeration) / 1000; // meters to scene units
-  const unwrap = lon => (lon < META.lon0 - 180 ? lon + 360 : lon);
+  // a map across the antimeridian has longitudes past 180: bring every point into its range
+  const unwrap = lon => (lon + 360 <= META.lon1 ? lon + 360 : lon - 360 >= META.lon0 ? lon - 360 : lon);
   const toX = lon => ((unwrap(lon) - META.lon0) / (META.lon1 - META.lon0)) * KX - KX / 2;
   const toZ = lat => ((META.lat1 - lat) / (META.lat1 - META.lat0)) * KY - KY / 2;
 
@@ -418,7 +419,7 @@ export async function buildWorld(root, renderer, isSmall, mapId, places, customL
 
   /* clouds */
   const clouds = [];
-  if (!META.overview) {
+  if (!META.overview && ui.clouds !== false) {
     const cloudMaterial = std('#FFFFFF', { roughness: 1, flatShading: true, transparent: true, opacity: 0.95 });
     for (let i = 0; i < 9; i++) {
       const cloud = new THREE.Group(),
@@ -444,7 +445,7 @@ export async function buildWorld(root, renderer, isSmall, mapId, places, customL
       boat.position.set(u.x + Math.cos(angle) * u.radius, 0, u.z + Math.sin(angle) * u.radius);
       boat.rotation.y = -angle;
     });
-    if (waterNormal) waterNormal.offset.set(s * 0.012, s * 0.008);
+    if (waterNormal && ui.animated_sea !== false) waterNormal.offset.set(s * 0.012, s * 0.008);
     for (const cloud of clouds) {
       cloud.position.x += cloud.userData.speed * 0.016;
       if (cloud.position.x > 40) cloud.position.x = -40;

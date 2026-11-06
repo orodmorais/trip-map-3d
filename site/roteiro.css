@@ -76,7 +76,7 @@ a {
   padding: 9px 13px;
 }
 .toplinks a:hover {
-  background: #fff;
+  background: var(--card);
 }
 main {
   max-width: 920px;
@@ -129,7 +129,7 @@ h1 {
   display: inline-block;
   text-decoration: none;
   background: var(--ink);
-  color: #fff;
+  color: var(--card);
   font-weight: 700;
   font-size: 15px;
   padding: 12px 18px;
@@ -174,7 +174,7 @@ h1 {
 }
 .daynav a[aria-current] {
   background: var(--ink);
-  color: #fff;
+  color: var(--card);
   border-color: var(--ink);
 }
 .day {
@@ -215,7 +215,7 @@ h1 {
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 7px 11px;
-  background: #fff;
+  background: var(--card);
 }
 .maplink:hover {
   border-color: var(--ink);
@@ -270,7 +270,7 @@ h1 {
   align-items: baseline;
   gap: 4px 12px;
   padding: 10px 0;
-  border-top: 1px solid #ece8de;
+  border-top: 1px solid var(--soft);
 }
 .items li:first-child {
   border-top: 0;
@@ -330,7 +330,7 @@ h1 {
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: 12px;
-  background: #fff;
+  background: var(--card);
 }
 .dl:hover {
   border-color: var(--ink);
@@ -401,7 +401,7 @@ h1 {
 }
 .install {
   font-size: 14px;
-  background: #eef4e2;
+  background: var(--soft-accent);
   border-radius: 12px;
   padding: 10px 12px;
   margin: 0 0 14px;
@@ -422,7 +422,7 @@ h1 {
 .brand b {
   font: inherit;
   font-size: 23px;
-  color: var(--ink, #1c221e);
+  color: var(--ink, var(--ink));
   background: url('data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0010040' preserveAspectRatio='none'%3E%3Cpath d='M812C1442410336.5C442529635C731.5808903L972L93.59.5L9914C951899.52195.525.5L99.530C943292298634C75387031.55835.5C47394132.53036C21391433437.5L731L127.5C523.50.521417L0.514.5Z' fill='#c9e68e'/%3E%3Cpath d='M1113C2593713.55210C6677912928.5M621.5C2418.540245820.5C721883239519.5M930.5C2633.54427.56331.5C763485299331' stroke='#b2d36a' stroke-width='2.8' fill='none' stroke-linecap='round' opacity='0.9'/%3E%3C/svg%3E')
     center/100% 100% no-repeat;
   border-radius: 0;
@@ -443,14 +443,14 @@ h1,
   font-family: var(--draw);
   font-weight: 400;
   letter-spacing: 0.015em;
-  -webkit-text-stroke: var(--thin) var(--bgc, #fbfaf6);
+  -webkit-text-stroke: var(--thin) var(--bgc, var(--card));
 }
 .brand {
   --bgc: var(--card);
   font-size: 26px;
 }
 .brand b {
-  -webkit-text-stroke: var(--thin) #c9e68e;
+  -webkit-text-stroke: var(--thin) var(--accent);
 }
 .toplinks a {
   --bgc: var(--card);
