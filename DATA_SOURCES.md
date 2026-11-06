@@ -158,3 +158,7 @@ The O'ahu reference site credits only the forecasts, so this is new work in M4.
 - Forecasts by Open-Meteo (CC BY 4.0), when weather is on
 - NOAA as source, when tides are on
 - Font licenses
+
+## NOAA stations
+
+The tide module lists stations with `https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations.json?type=tidepredictions` (3 502 stations, tested on 2026-11-05) and saves the high and low tide tables at build time, so they work offline. Outside the United States it uses `sea_level_height_msl` from Open-Meteo marine, with a warning that it is not precise near the coast.

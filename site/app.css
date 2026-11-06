@@ -1884,3 +1884,8 @@ body.card-open .creditsbtn {
     font-size: 10.5px;
   }
 }
+
+.wlist .nm .lnk {
+  display: block;
+  text-align: left;
+}

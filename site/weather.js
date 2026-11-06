@@ -1,11 +1,8 @@
 // Weather for each day of the trip, from Open-Meteo, with the last forecast kept for offline use.
-import { nowIn } from './live.js';
-
 const WINDOW_DAYS = 15;
 const REFRESH_MS = 60 * 60e3;
 const DAILY =
   'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,wind_direction_10m_dominant,uv_index_max,sunrise,sunset';
-const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 const SKY = {
   sun: '<circle cx="12" cy="12" r="4.2" fill="#F2B632"/><g stroke="#F2B632" stroke-width="2" stroke-linecap="round"><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7"/></g>',
   part: '<circle cx="9" cy="9" r="3.6" fill="#F2B632"/><path d="M8 19h9.5a3.5 3.5 0 0 0 .3-7 5 5 0 0 0-9.6 1.3A2.9 2.9 0 0 0 8 19z" fill="#C9D3DA" stroke="#7E8C96" stroke-width="1.2"/>',
@@ -27,7 +24,6 @@ function describe(code) {
   if (code <= 82) return ['showers', 'rain'];
   return ['storm', 'storm'];
 }
-const compass = degrees => COMPASS[Math.round((((degrees % 360) + 360) % 360) / 45) % 8];
 const addDays = (ymd, k) => {
   const d = new Date(ymd + 'T12:00:00Z');
   d.setUTCDate(d.getUTCDate() + k);
@@ -72,8 +68,10 @@ export function sunTimes(ymd, lat, lon, timezone) {
 }
 
 export function initWeather(ctx) {
-  const { T, go, esc, $, bindGo, onOpen, isDayOpen } = ctx;
+  const { T, esc, $, bindGo, onOpen, isDayOpen } = ctx;
   const enabled = T.modules.weather;
+  const extras = [];
+  let tab = enabled ? 'weather' : null;
   const button = $('#condBtn'),
     panel = $('#cond'),
     body = $('#condBody');
@@ -148,14 +146,15 @@ export function initWeather(ctx) {
   }
   function dayHTML(n) {
     const day = T.days[n - 1];
-    if (!enabled || !day.center) return '';
+    const more = extras.map(extra => extra.dayHTML?.(n) || '').join('');
+    if (!enabled || !day.center) return more;
     const data = S.status === 'ok' ? forecast(day) : null;
     if (data) {
       const [label, sky] = describe(data.code);
-      return `<div class="dwx">${skyIcon(sky)}<div><b>${esc(t(label))} · ${fmtTemp(data.max)}/${fmtTemp(data.min)}${fmtTempUnit().slice(1)}</b><small>${esc(day.area)} · ${esc(t('wxRow', { p: Math.round(data.rain ?? 0), w: `${fmtSpeed(data.wind)} ${compass(data.from)}`, u: Math.round(data.uv ?? 0), a: fmtTime(data.rise), b: fmtTime(data.set) }))}</small></div></div>`;
+      return `<div class="dwx">${skyIcon(sky)}<div><b>${esc(t(label))} · ${fmtTemp(data.max)}/${fmtTemp(data.min)}${fmtTempUnit().slice(1)}</b><small>${esc(day.area)} · ${esc(t('wxRow', { p: Math.round(data.rain ?? 0), w: `${fmtSpeed(data.wind)} ${fmtCompass(data.from)}`, u: Math.round(data.uv ?? 0), a: fmtTime(data.rise), b: fmtTime(data.set) }))}</small></div></div>${more}`;
     }
     const sun = sunTimes(day.date, day.center[0], day.center[1], day.tz);
-    return `<div class="dwx">${skyIcon('part')}<div><b>${esc(t('wxFrom', { d: fmtDate(addDays(day.date, -WINDOW_DAYS)) }))}</b><small>${esc(day.area)} · ${esc(t('sunriseSunset', { a: fmtTime(sun.rise), b: fmtTime(sun.set) }))}</small></div></div>`;
+    return `<div class="dwx">${skyIcon('part')}<div><b>${esc(t('wxFrom', { d: fmtDate(addDays(day.date, -WINDOW_DAYS)) }))}</b><small>${esc(day.area)} · ${esc(t('sunriseSunset', { a: fmtTime(sun.rise), b: fmtTime(sun.set) }))}</small></div></div>${more}`;
   }
   function list() {
     if (S.status === 'loading') return `<p class="cmsg">${esc(t('wxLoading'))}</p>`;
@@ -172,26 +171,42 @@ export function initWeather(ctx) {
         const [label, sky] = describe(data.code);
         return `<li>${skyIcon(sky)}<span class="nm"><button type="button" class="lnk" ${go}><b>${esc(t('day', { n: day.n }))} · ${esc(fmtDate(day.date))}</b></button><small>${esc(t(label))} · ${esc(day.area)}</small></span>
         <span class="tt"><b>${fmtTemp(data.max)}</b>/${fmtTemp(data.min)}${fmtTempUnit().slice(1)}</span>
-        <span class="mt"><span>☂ ${Math.round(data.rain ?? 0)}%</span><span>${esc(fmtSpeed(data.wind))} ${compass(data.from)}</span><span>UV ${Math.round(data.uv ?? 0)}</span><span>☀ ${esc(fmtTime(data.rise))} · ${esc(fmtTime(data.set))}</span></span></li>`;
+        <span class="mt"><span>☂ ${Math.round(data.rain ?? 0)}%</span><span>${esc(fmtSpeed(data.wind))} ${fmtCompass(data.from)}</span><span>UV ${Math.round(data.uv ?? 0)}</span><span>☀ ${esc(fmtTime(data.rise))} · ${esc(fmtTime(data.set))}</span></span></li>`;
       })
       .join('');
     return `<p class="csub">${esc(t('wxByDay'))}</p><ul class="wlist">${rows}</ul>`;
   }
   function render() {
     if (panel.hidden) return;
+    const tabs = [...(enabled ? [{ id: 'weather', label: t('weather') }] : []), ...extras];
+    const active = extras.find(extra => extra.id === tab);
+    const header =
+      tabs.length > 1
+        ? `<div class="ctabs" role="tablist">${tabs.map(item => `<button type="button" role="tab" data-tab="${item.id}" aria-selected="${item.id === tab}">${esc(item.label)}</button>`).join('')}</div>`
+        : '';
     const time = S.at
       ? new Intl.DateTimeFormat(T.language, { dateStyle: 'short', timeStyle: 'short' }).format(S.at)
       : '';
     const note = S.at ? ` ${esc(t(S.stale ? 'saved' : 'updated', { t: time }))}` : '';
-    body.innerHTML = `<div class="cpane">${list()}</div><p class="cfoot"><a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0).${note}</p>`;
+    body.innerHTML = `${header}<div class="cpane">${active ? active.html() : list()}</div><p class="cfoot"><a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0).${note}</p>`;
     bindGo(body);
+    body.querySelectorAll('[data-tab]').forEach(button => {
+      button.onclick = () => {
+        tab = button.dataset.tab;
+        render();
+      };
+    });
+    active?.bindPanel?.(body, render);
     const retry = $('#condRetry');
     if (retry) retry.onclick = () => load(true);
   }
   function update() {
     render();
     const box = $('#cdy');
-    if (box && isDayOpen()) box.innerHTML = dayHTML(isDayOpen());
+    if (box && isDayOpen()) {
+      box.innerHTML = dayHTML(isDayOpen());
+      bindGo(box);
+    }
   }
   function open() {
     onOpen?.();
@@ -205,12 +220,27 @@ export function initWeather(ctx) {
     document.body.classList.remove('cond-open');
     button.setAttribute('aria-expanded', 'false');
   }
-  button.hidden = !enabled;
   button.onclick = () => (panel.hidden ? open() : close());
   $('#condX').onclick = close;
   setTimeout(() => load(false), 0);
   setInterval(() => {
     if (document.visibilityState === 'visible') load(true);
   }, REFRESH_MS);
-  return { reload: () => load(true), dayHTML, close, isOpen: () => !panel.hidden, now: nowIn };
+  const addExtra = extra => {
+    extras.push(extra);
+    tab = tab || extra.id;
+    button.hidden = false;
+  };
+  button.hidden = !enabled;
+  return {
+    reload: () => {
+      load(true);
+      extras.forEach(extra => extra.reload?.());
+    },
+    addExtra,
+    update,
+    dayHTML,
+    close,
+    isOpen: () => !panel.hidden,
+  };
 }

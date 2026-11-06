@@ -822,6 +822,7 @@ function cardPlace(place) {
     : '';
   openCard(
     `<p class="kicker">${esc(typeName(place.type))}</p><h2 id="cardTitle">${esc(place.name)}</h2>${place.desc ? `<p>${esc(place.desc)}</p>` : ''}
+    <div id="cpl">${surf?.placeHTML(place) ?? ''}</div>
     ${place.tip ? `<p style="color:var(--ink)"><b>${esc(t('tip'))}</b> ${esc(place.tip)}</p>` : ''}
     <div class="tags">${tags.join('')}</div>${when}
     <div class="actions"><a class="btn primary" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.maps)}" target="_blank" rel="noopener">${esc(t('openMaps'))}</a><a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lon}&travelmode=driving" target="_blank" rel="noopener">${esc(t('routeHere'))}</a></div>`,
@@ -1008,6 +1009,13 @@ async function route() {
 }
 
 /* ---------------- start ---------------- */
+let surf = null;
+function moduleChanged() {
+  weather.update();
+  surf?.decoratePins(pinEls);
+  const box = $('#cpl');
+  if (box && state.sel) box.innerHTML = surf?.placeHTML(placeById[state.sel]) ?? '';
+}
 const weather = initWeather({
   T,
   placeById,
@@ -1040,6 +1048,15 @@ const live = initLive({
   overview: OVERVIEW,
   onOnline: () => weather.reload(),
 });
+if (T.modules.surf && T.places.some(place => place.spot)) {
+  const { initSurf } = await import('./surf.js');
+  surf = initSurf({ T, go, esc, bindGo, onChange: moduleChanged });
+  weather.addExtra(surf);
+}
+if (T.modules.tides) {
+  const { initTides } = await import('./tides.js');
+  weather.addExtra(initTides({ T, esc, onChange: moduleChanged }));
+}
 resize();
 camera.position.set(0, 80, 60);
 controls.target.set(0, 0, 0);
