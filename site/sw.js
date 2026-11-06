@@ -15,7 +15,14 @@ self.addEventListener('activate', event => {
   event.waitUntil(
     caches
       .keys()
-      .then(keys => Promise.all(keys.filter(key => key !== VERSION && key !== FORECAST).map(key => caches.delete(key))))
+      .then(keys =>
+        // other sites on the same domain have their own caches: leave them alone
+        Promise.all(
+          keys
+            .filter(key => key.startsWith('__NAME__-') && key !== VERSION && key !== FORECAST)
+            .map(key => caches.delete(key)),
+        ),
+      )
       .then(() => self.clients.claim()),
   );
 });

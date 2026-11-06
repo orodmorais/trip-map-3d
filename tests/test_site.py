@@ -63,7 +63,7 @@ def test_site_data_knows_when_a_trip_has_many_maps():
 
 def test_service_worker_template_keeps_its_placeholders():
     template = (SITE_DIR / "sw.js").read_text(encoding="utf-8")
-    assert "'__CORE__'" in template and "__VERSION__" in template and "__NAME__" in template
+    assert "'__CORE__'" in template and "__VERSION__" in template and "key.startsWith('__NAME__-')" in template
 
 
 def test_mean_longitude_works_across_the_antimeridian():
