@@ -27,7 +27,7 @@ Also habe ich es für meine eigene Reise nach O'ahu gebaut und danach ein Templa
 
 > Keine Server zu betreiben und keine API-Keys für den privaten Gebrauch (für den Weg ohne Code reicht ein GitHub-Account). Rein kommt eine YAML-Datei, raus kommt ein Ordner mit statischen Dateien. GitHub Actions baut alles neu, sobald du die Reise bearbeitest.
 
-**Live-Demo:** [Europe](https://orodmorais.github.io/trip-map-3d/) · [O'ahu](https://orodmorais.github.io/trip-map-3d/oahu/) · **Fünf Beispielreisen:** [examples/](../../examples/) · **Testbericht:** [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md)
+**Live-Demos:** [Europe](https://orodmorais.github.io/trip-map-3d/) · [O'ahu](https://orodmorais.github.io/trip-map-3d/oahu/) (auf Portugiesisch) · **Fünf Beispielreisen:** [examples/](../../examples/) · **Testbericht:** [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md)
 
 ---
 

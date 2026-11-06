@@ -27,7 +27,7 @@
 
 > 運用するサーバーは不要で、個人利用なら API キーも要りません（コードなしの方法に必要なのは GitHub アカウントだけです）。YAML ファイルを 1 つ入れると、静的ファイルのフォルダが 1 つ出てきます。旅程を編集するたびに、GitHub Actions がサイトを再ビルドします。
 
-**ライブデモ：** [Europe](https://orodmorais.github.io/trip-map-3d/) · [O'ahu](https://orodmorais.github.io/trip-map-3d/oahu/) · **5 つのサンプル旅行：** [examples/](../../examples/) · **テストレポート：** [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md)
+**ライブデモ：** [Europe](https://orodmorais.github.io/trip-map-3d/) · [O'ahu](https://orodmorais.github.io/trip-map-3d/oahu/)（ポルトガル語） · **5 つのサンプル旅行：** [examples/](../../examples/) · **テストレポート：** [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md)
 
 ---
 

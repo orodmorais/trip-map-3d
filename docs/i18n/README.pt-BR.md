@@ -27,7 +27,7 @@ Então montei isso para a minha viagem a O'ahu e depois transformei num template
 
 > Nenhum servidor para manter e nenhuma chave de API para uso pessoal (no caminho sem código, basta uma conta no GitHub). Entra um arquivo YAML, sai uma pasta de arquivos estáticos. O GitHub Actions refaz o build toda vez que você edita a viagem.
 
-**Demo ao vivo:** [Europe](https://orodmorais.github.io/trip-map-3d/) · [O'ahu](https://orodmorais.github.io/trip-map-3d/oahu/) · **Cinco viagens de exemplo:** [examples/](../../examples/) · **Relatório de testes:** [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md)
+**Demos ao vivo:** [Europe](https://orodmorais.github.io/trip-map-3d/) · [O'ahu](https://orodmorais.github.io/trip-map-3d/oahu/) (em português) · **Cinco viagens de exemplo:** [examples/](../../examples/) · **Relatório de testes:** [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md)
 
 ---
 

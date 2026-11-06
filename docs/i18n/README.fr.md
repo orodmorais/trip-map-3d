@@ -27,7 +27,7 @@ Alors je l'ai construit pour mon propre voyage à O'ahu, puis j'en ai fait un mo
 
 > Aucun serveur à gérer et aucune clé d'API pour un usage personnel (pour le parcours sans code, un compte GitHub suffit). Un fichier YAML en entrée, un dossier de fichiers statiques en sortie. GitHub Actions reconstruit le site à chaque modification du voyage.
 
-**Démo en ligne :** [Europe](https://orodmorais.github.io/trip-map-3d/) · [O'ahu](https://orodmorais.github.io/trip-map-3d/oahu/) · **Cinq voyages d'exemple :** [examples/](../../examples/) · **Rapport de tests :** [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md)
+**Démos en ligne :** [Europe](https://orodmorais.github.io/trip-map-3d/) · [O'ahu](https://orodmorais.github.io/trip-map-3d/oahu/) (en portugais) · **Cinq voyages d'exemple :** [examples/](../../examples/) · **Rapport de tests :** [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md)
 
 ---
 

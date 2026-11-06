@@ -27,7 +27,7 @@
 
 > 无需运行服务器，个人使用也不需要 API key（无代码方式只需要一个 GitHub 账号）。输入一个 YAML 文件，输出一个装满静态文件的文件夹。每次你修改行程，GitHub Actions 都会重新构建。
 
-**在线演示：** [Europe](https://orodmorais.github.io/trip-map-3d/) · [O'ahu](https://orodmorais.github.io/trip-map-3d/oahu/) · **五个示例行程：** [examples/](../../examples/) · **测试报告：** [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md)
+**在线演示：** [Europe](https://orodmorais.github.io/trip-map-3d/) · [O'ahu](https://orodmorais.github.io/trip-map-3d/oahu/)（葡萄牙语） · **五个示例行程：** [examples/](../../examples/) · **测试报告：** [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md)
 
 ---
 

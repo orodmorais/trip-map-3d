@@ -27,7 +27,7 @@
 
 > 운영할 서버가 필요 없고, 개인 용도라면 API 키도 필요 없습니다(코드 없는 방법에 필요한 것은 GitHub 계정뿐입니다). YAML 파일 하나를 넣으면 정적 파일 폴더 하나가 나옵니다. 여행 내용을 수정할 때마다 GitHub Actions가 사이트를 다시 빌드합니다.
 
-**라이브 데모:** [Europe](https://orodmorais.github.io/trip-map-3d/) · [O'ahu](https://orodmorais.github.io/trip-map-3d/oahu/) · **예시 여행 5개:** [examples/](../../examples/) · **테스트 보고서:** [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md)
+**라이브 데모:** [Europe](https://orodmorais.github.io/trip-map-3d/) · [O'ahu](https://orodmorais.github.io/trip-map-3d/oahu/) (포르투갈어) · **예시 여행 5개:** [examples/](../../examples/) · **테스트 보고서:** [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md)
 
 ---
 

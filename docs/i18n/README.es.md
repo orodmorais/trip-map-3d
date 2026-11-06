@@ -27,7 +27,7 @@ Así que lo hice para mi propio viaje a O'ahu y después lo convertí en una pla
 
 > Sin servidores que mantener y sin claves de API para uso personal (para el camino sin código basta una cuenta de GitHub). Entra un archivo YAML, sale una carpeta de archivos estáticos. GitHub Actions vuelve a generar el sitio cada vez que editas el viaje.
 
-**Demo en vivo:** [Europe](https://orodmorais.github.io/trip-map-3d/) · [O'ahu](https://orodmorais.github.io/trip-map-3d/oahu/) · **Cinco viajes de ejemplo:** [examples/](../../examples/) · **Informe de pruebas:** [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md)
+**Demos en vivo:** [Europe](https://orodmorais.github.io/trip-map-3d/) · [O'ahu](https://orodmorais.github.io/trip-map-3d/oahu/) (en portugués) · **Cinco viajes de ejemplo:** [examples/](../../examples/) · **Informe de pruebas:** [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md)
 
 ---
 

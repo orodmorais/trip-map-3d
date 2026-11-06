@@ -25,7 +25,7 @@ So I built it for my own trip to O'ahu, and then turned it into a template for a
 
 > No servers to run, and no API keys for personal use (a GitHub account is all the no-code path needs). One YAML file in, one folder of static files out. GitHub Actions rebuilds it every time you edit the trip.
 
-**Live demo:** [Europe](https://orodmorais.github.io/trip-map-3d/) · [O'ahu](https://orodmorais.github.io/trip-map-3d/oahu/) · **Five example trips:** [examples/](examples/) · **Test report:** [docs/TEST_REPORT.md](docs/TEST_REPORT.md)
+**Live demos:** [Europe](https://orodmorais.github.io/trip-map-3d/) · [O'ahu](https://orodmorais.github.io/trip-map-3d/oahu/) (in Portuguese) · **Five example trips:** [examples/](examples/) · **Test report:** [docs/TEST_REPORT.md](docs/TEST_REPORT.md)
 
 ---
 
