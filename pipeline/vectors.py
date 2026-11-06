@@ -23,8 +23,14 @@ TOWN_RANK = {"megacity": 0, "city": 1, "town": 2, "village": 3, "hamlet": 4}
 DEFAULT_RANK = 5
 
 
-def bbox_tuple(bbox: dict) -> tuple[float, float, float, float]:
-    return bbox["lon0"], bbox["lat0"], bbox["lon1"], bbox["lat1"]
+def bbox_tuples(bbox: dict) -> list[tuple[float, float, float, float]]:
+    """One query box, or two when the map crosses the antimeridian."""
+    south, north, west, east = bbox["lat0"], bbox["lat1"], bbox["lon0"], bbox["lon1"]
+    if west < -180:
+        return [(west + 360, south, 180.0, north), (-180.0, south, east, north)]
+    if east > 180:
+        return [(west, south, 180.0, north), (-180.0, south, east - 360, north)]
+    return [(west, south, east, north)]
 
 
 def road_classes(side_km: float) -> tuple[str, ...]:
@@ -39,11 +45,12 @@ def river_classes(side_km: float) -> tuple[str, ...]:
 
 def batches(kind: str, bbox: dict, columns: list[str]):
     # stac: open only the files that cover this box, 8x faster than scanning all of them
-    reader = core.record_batch_reader(kind, bbox_tuple(bbox), stac=True)
-    if reader is None:
-        raise OSError(f"Overture has no data for {kind}")
-    for batch in reader:
-        yield {name: batch.column(name).to_pylist() for name in columns}
+    for box in bbox_tuples(bbox):
+        reader = core.record_batch_reader(kind, box, stac=True)
+        if reader is None:
+            raise OSError(f"Overture has no data for {kind}")
+        for batch in reader:
+            yield {name: batch.column(name).to_pylist() for name in columns}
 
 
 def line_coords(wkb: bytes) -> list[list[list[float]]]:

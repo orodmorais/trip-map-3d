@@ -1,9 +1,10 @@
 import numpy as np
+import pytest
 
 from pipeline.scene import conifer_share
 from pipeline.texture import ramp, rgb, to_pixels
 from pipeline.theme import deep_merge, load_theme
-from pipeline.vectors import is_tunnel, pick_towns, road_classes
+from pipeline.vectors import bbox_tuples, is_tunnel, pick_towns, road_classes
 
 
 def test_user_theme_overrides_only_what_it_sets():
@@ -47,3 +48,13 @@ def test_towns_keep_the_biggest_and_skip_close_neighbors():
 def test_tropical_lowlands_have_no_conifers():
     assert conifer_share(21, np.array([0.0]))[0] == 0
     assert conifer_share(60, np.array([0.0]))[0] > 0.5
+
+
+def test_vector_query_splits_at_the_antimeridian():
+    box = {"lat0": -17, "lat1": -16, "lon0": -181.0, "lon1": -179.0}
+    assert bbox_tuples(box) == [(179.0, -17, 180.0, -16), (-180.0, -17, -179.0, -16)]
+
+
+def test_longitudes_join_a_box_that_passes_180():
+    box = {"lat0": 0, "lat1": 1, "lon0": 179.0, "lon1": 181.0}
+    assert to_pixels([[-179.5, 1.0]], box, 200, 100)[0][0] == pytest.approx(150)

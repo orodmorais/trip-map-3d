@@ -46,8 +46,15 @@ def ramp(values: np.ndarray, stops: list[tuple[float, np.ndarray]]) -> np.ndarra
     return np.stack([np.interp(values, xs, [s[1][i] for s in stops]) for i in range(3)], axis=-1).astype("float32")
 
 
+def unwrap(lon: float, bbox: dict) -> float:
+    """Bring a longitude into a box that may pass 180 on maps across the antimeridian."""
+    if lon + 360 <= bbox["lon1"]:
+        return lon + 360
+    return lon - 360 if lon - 360 >= bbox["lon0"] else lon
+
+
 def to_pixels(line: list[list[float]], bbox: dict, width: int, height: int) -> list[tuple[float, float]]:
-    return [((lon - bbox["lon0"]) / (bbox["lon1"] - bbox["lon0"]) * width,
+    return [((unwrap(lon, bbox) - bbox["lon0"]) / (bbox["lon1"] - bbox["lon0"]) * width,
              (bbox["lat1"] - lat) / (bbox["lat1"] - bbox["lat0"]) * height) for lon, lat in line]
 
 

@@ -167,7 +167,7 @@ def read_terrarium(bbox: dict, width: int, height: int) -> np.ndarray:
     z = terrarium_zoom(bbox, width)
     lons = np.linspace(bbox["lon0"], bbox["lon1"], width)
     lats = np.linspace(bbox["lat1"], bbox["lat0"], height)
-    x0, x1 = int(mercator_x(lons[0], z)), int(mercator_x(lons[-1], z))
+    x0, x1 = math.floor(mercator_x(lons[0], z)), math.floor(mercator_x(lons[-1], z))
     y0, y1 = int(mercator_y(lats[0], z)), int(mercator_y(lats[-1], z))
     mosaic = np.vstack([np.hstack([fetch_terrarium(z, x, y) for x in range(x0, x1 + 1)]) for y in range(y0, y1 + 1)])
     median = ndimage.median_filter(mosaic, size=3)

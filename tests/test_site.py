@@ -1,7 +1,9 @@
 from PIL import Image
 
 from pipeline.routes import insert_via, route_days
-from pipeline.site import SITE_DIR, credits, fill_template, site_data, trim_white
+import pytest
+
+from pipeline.site import SITE_DIR, credits, fill_template, mean_longitude, site_data, trim_white
 
 MODULES = {"weather": True, "surf": False, "tides": False}
 
@@ -62,3 +64,8 @@ def test_site_data_knows_when_a_trip_has_many_maps():
 def test_service_worker_template_keeps_its_placeholders():
     template = (SITE_DIR / "sw.js").read_text(encoding="utf-8")
     assert "'__CORE__'" in template and "__VERSION__" in template and "__NAME__" in template
+
+
+def test_mean_longitude_works_across_the_antimeridian():
+    assert abs(mean_longitude([179.9, -179.9])) == pytest.approx(180)
+    assert mean_longitude([10, 20]) == pytest.approx(15)

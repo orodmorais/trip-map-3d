@@ -30,6 +30,7 @@ def pick_stations(stations: list[dict], lat: float, lon: float) -> list[dict]:
 
 
 def tide_events(station_id: str, start: str, end: str, units: str) -> list[list]:
+    """High and low tides. NOAA reports problems as an error inside a normal answer."""
     begin = (dt.date.fromisoformat(start) - dt.timedelta(days=MARGIN_DAYS)).strftime("%Y%m%d")
     finish = (dt.date.fromisoformat(end) + dt.timedelta(days=MARGIN_DAYS)).strftime("%Y%m%d")
     data = get_json(PREDICTIONS_URL, {"product": "predictions", "application": APPLICATION, "station": station_id, "begin_date": begin,
@@ -38,19 +39,27 @@ def tide_events(station_id: str, start: str, end: str, units: str) -> list[list]
     return [[row["t"], float(row["v"]), row["type"]] for row in data.get("predictions", [])]
 
 
-def build_tides(trip: dict) -> dict:
-    """Return {stations: [...]}. An empty list makes the site use the rougher global model."""
+def build_tides(trip: dict) -> tuple[dict, list[str]]:
+    """Return ({stations: [...]}, notes). An empty list makes the site use the rougher global model."""
     all_stations = get_json(STATIONS_URL, {"type": "tidepredictions"})["stations"]
     wanted = {str(s) for s in trip["tide_stations"]}
     found: dict[str, dict] = {s["id"]: s for s in all_stations if s["id"] in wanted}
+    notes = [f"tide station not found: {station}" for station in sorted(wanted - set(found))]
     for item in trip["maps"]:
         box = item["bbox"]
         for station in pick_stations(all_stations, (box["lat0"] + box["lat1"]) / 2, (box["lon0"] + box["lon1"]) / 2):
             if not wanted:
                 found[station["id"]] = station
-    return {"unit": trip["units"]["waves"], "stations": [
-        {"id": s["id"], "name": s["name"], "lat": s["lat"], "lon": s["lng"],
-         "events": tide_events(s["id"], trip["start"], trip["end"], trip["units"]["waves"])} for s in found.values()]}
+    stations = []
+    for station in found.values():
+        events = tide_events(station["id"], trip["start"], trip["end"], trip["units"]["waves"])
+        if events:
+            stations.append({"id": station["id"], "name": station["name"], "lat": station["lat"], "lon": station["lng"], "events": events})
+        else:
+            notes.append(f'no tide predictions for {station["name"]}')
+    if not stations:
+        notes.append("no tide tables for this trip: the site will use the global model")
+    return {"unit": trip["units"]["waves"], "stations": stations}, notes
 
 
 def write_tides(tides: dict, out_dir: Path) -> None:

@@ -5,16 +5,19 @@ import hashlib
 import html
 import io
 import json
+import math
 import re
 import shutil
 import tarfile
 from pathlib import Path
+from urllib.parse import quote
 
 import numpy as np
 import requests
 from PIL import Image, ImageDraw, ImageOps
 
 from .geocode import USER_AGENT
+from .regions import haversine_km
 from .schema import slug
 from .tides import write_tides
 
@@ -23,6 +26,14 @@ PHOTO_MAX_PX = 1400
 PHOTO_QUALITY = 84
 WHITE_BORDER = 245
 FONT_WEIGHTS = (400, 500, 600, 700)
+DERIVED_COLORS = """:root {
+  --ink2: color-mix(in srgb, var(--ink) 82%, var(--card));
+  --muted: color-mix(in srgb, var(--ink) 68%, var(--card));
+  --soft: color-mix(in srgb, var(--ink) 6%, var(--card));
+  --soft-accent: color-mix(in srgb, var(--accent) 28%, var(--card));
+  --accent-ink: color-mix(in srgb, #000 72%, var(--accent));
+}
+"""
 DAY_COLORS = ("#E07A2E", "#2E8C89", "#C2316A", "#3F7A3A", "#6D4BA0", "#D9553B",
               "#1F7FA6", "#9A6B2E", "#55692A", "#B8452F", "#2B8FB0", "#7A4E8C")
 TERRAIN_TILES_CREDIT = (
@@ -123,7 +134,7 @@ def theme_css(theme: dict, faces: str) -> str:
     fonts = theme["fonts"]
     return (f'{faces}\n:root{{{colors}--draw:"{fonts["display"]}",system-ui,sans-serif;'
             f'--sans:"{fonts["body"]}",system-ui,sans-serif;--mono:"{fonts["mono"]}",ui-monospace,monospace;'
-            f'--thin:{fonts.get("display_thin", 0)}}}\n')
+            f'--thin:{fonts.get("display_thin", 0)}}}\n{DERIVED_COLORS}')
 
 
 def write_icons(theme: dict, out_dir: Path) -> None:
@@ -150,6 +161,13 @@ def site_places(trip: dict, photos: frozenset[str]) -> list[dict]:
              "items": items.get(p["id"], [])} for p in trip["places"]]
 
 
+def mean_longitude(longitudes: list[float]) -> float:
+    """A plain average of 179.9 and -179.9 would land on the other side of the planet."""
+    x = sum(math.cos(math.radians(lon)) for lon in longitudes)
+    y = sum(math.sin(math.radians(lon)) for lon in longitudes)
+    return math.degrees(math.atan2(y, x))
+
+
 def site_days(trip: dict, theme: dict) -> list[dict]:
     custom = theme.get("ui", {}).get("day_colors", "auto")
     palette = custom if isinstance(custom, list) and custom else DAY_COLORS
@@ -159,7 +177,7 @@ def site_days(trip: dict, theme: dict) -> list[dict]:
     days = []
     for day in trip["days"]:
         stops = [places[leg_stop] for leg in day["legs"] for leg_stop in leg["stops"]]
-        center = [sum(p["lat"] for p in stops) / len(stops), sum(p["lon"] for p in stops) / len(stops)] if stops else None
+        center = [sum(p["lat"] for p in stops) / len(stops), mean_longitude([p["lon"] for p in stops])] if stops else None
         days.append({"n": day["n"], "date": day["date"], "title": day["title"], "color": palette[(day["n"] - 1) % len(palette)],
                      "area": day["area"] or " · ".join(dict.fromkeys(titles[leg["map"]] for leg in day["legs"])) or titles[day["map"]],
                      "items": [{**i, "type": i["type"] or (places[i["place"]]["type"] if i["place"] else "sight")} for i in day["items"]],
@@ -167,19 +185,24 @@ def site_days(trip: dict, theme: dict) -> list[dict]:
     return days
 
 
+def story_map(story: dict, maps: list[dict]) -> str:
+    """The map closest to where the story happens."""
+    return min(maps, key=lambda m: haversine_km(story["lat"], story["lon"], *m["center"]))["id"]
+
+
 def site_data(trip: dict, theme: dict, font_names: list[str], photos: frozenset[str] = frozenset()) -> dict:
     maps = []
     for item in trip["maps"]:
         box = item["bbox"]
         maps.append({"id": item["id"], "title": item["title"], "timezone": item["timezone"], "places": item["places"], "bbox": box,
-                     "center": [(box["lat0"] + box["lat1"]) / 2, (box["lon0"] + box["lon1"]) / 2]})
+                     "center": [(box["lat0"] + box["lat1"]) / 2, mean_longitude([box["lon0"], box["lon1"]])]})
     place_map = {place: m["id"] for m in trip["maps"] for place in m["places"]}
     placed = {**trip, "places": [{**p, "map": place_map[p["id"]]} for p in trip["places"]]}
     return {
         "title": trip["title"], "subtitle": trip["subtitle"], "start": trip["start"], "end": trip["end"],
         "language": trip["language"], "units": trip["units"], "modules": trip["modules"],
         "overview": len(maps) > 1, "maps": maps, "places": site_places(placed, photos), "days": site_days(trip, theme),
-        "stories": [{**story, "map": place_map[story["places"][0]] if story.get("places") else maps[0]["id"]} for story in trip["stories"]], "downloads": [Path(p).name for p in trip["downloads"]],
+        "stories": [{**story, "map": story_map(story, maps)} for story in trip["stories"]], "downloads": [Path(p).name for p in trip["downloads"]],
         "apikey": trip["services"].get("open_meteo_key"), "custom_landmarks": bool(trip["landmarks"]),
         "pins": theme.get("pins", {}).get("types", {}), "brand": theme.get("brand", {}), "ui": theme.get("ui", {}),
         "palette": {"bg": theme["colors"]["bg"], "card": theme["colors"]["card"]},
@@ -202,7 +225,7 @@ def write_service_worker(out_dir: Path, trip: dict) -> None:
         digest.update((out_dir / name).read_bytes())
     name = slug(trip["title"])
     template = (SITE_DIR / "sw.js").read_text(encoding="utf-8")
-    (out_dir / "sw.js").write_text(template.replace("'__CORE__'", json.dumps(["./", *files]))
+    (out_dir / "sw.js").write_text(template.replace("'__CORE__'", json.dumps(["./", *(quote(name) for name in files)]))
                                    .replace("__VERSION__", f"{name}-{digest.hexdigest()[:10]}").replace("__NAME__", name), encoding="utf-8")
 
 

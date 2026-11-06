@@ -185,6 +185,20 @@ def build_days(raw: dict, start: dt.date, places: list[dict], errors: list[str])
     return days, all_places
 
 
+def build_stories(raw: dict, errors: list[str]) -> list[dict]:
+    stories: list[dict] = []
+    for index, entry in enumerate(raw.get("stories") or [], 1):
+        where = f"stories[{index}]"
+        coords = read_coords(entry, where, errors) if isinstance(entry, dict) else None
+        if coords is None or not entry.get("title") or not entry.get("story"):
+            errors.append(both(f"{where}: title, lat, lon and story are required", f"{where}: faltam title, lat, lon ou story"))
+            continue
+        paragraphs = entry["story"] if isinstance(entry["story"], list) else [entry["story"]]
+        stories.append({"id": slug(str(entry.get("id") or entry["title"])), "title": str(entry["title"]), "lat": coords[0], "lon": coords[1],
+                        "story": [str(p) for p in paragraphs], "places": [str(p) for p in entry.get("places") or []]})
+    return stories
+
+
 def choice(raw: dict, key: str, allowed: tuple[str, ...], default: str, errors: list[str]) -> str:
     value = raw.get(key, default)
     if value not in allowed:
@@ -219,6 +233,9 @@ def normalize(raw: Any) -> dict:
 
     places = declared_places(raw, errors)
     days, places = build_days(raw, start, places, errors)
+    if not places and not errors:
+        errors.append(both("the trip needs at least one place", "a viagem precisa de pelo menos um lugar"))
+    stories = build_stories(raw, errors)
     end = parse_date(dates.get("end")) if dates.get("end") else None
     if dates.get("end") and (end is None or end < start):
         errors.append(both("dates.end must be on or after dates.start", "dates.end não pode ser antes de dates.start"))
@@ -257,7 +274,7 @@ def normalize(raw: Any) -> dict:
         "services": raw.get("services") or {},
         "places": places,
         "days": days,
-        "stories": raw.get("stories") or [],
+        "stories": stories,
         "downloads": downloads,
         "surf_spots": raw.get("surf_spots"),
         "tide_stations": raw.get("tide_stations") or [],

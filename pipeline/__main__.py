@@ -51,7 +51,7 @@ def prepare(path: Path) -> tuple[dict, list[str]]:
 
 
 def box_center(box: dict) -> tuple[float, float]:
-    return (box["lat0"] + box["lat1"]) / 2, (box["lon0"] + box["lon1"]) / 2
+    return (box["lat0"] + box["lat1"]) / 2, ((box["lon0"] + box["lon1"]) / 2 + 180) % 360 - 180
 
 
 def build_context(item: dict, parent: dict, colors: dict, ocean: str, folder: Path) -> dict:
@@ -94,8 +94,8 @@ def build(trip: dict, theme: dict, trip_path: Path, out_dir: Path) -> list[str]:
     if trip["modules"]["surf"] and trip["surf_spots"]:
         trip, spot_notes = attach_spots(trip, load_spots(trip_path.parent / trip["surf_spots"]))
         notes += spot_notes
-    tides = build_tides(trip) if trip["modules"]["tides"] else None
-    return notes + assemble(trip, theme, tides, trip_path.parent, out_dir, CACHE_DIR)
+    tides, tide_notes = build_tides(trip) if trip["modules"]["tides"] else (None, [])
+    return notes + tide_notes + assemble(trip, theme, tides, trip_path.parent, out_dir, CACHE_DIR)
 
 
 def main() -> int:

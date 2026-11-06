@@ -13,13 +13,17 @@ def base(**extra):
     return {"title": "T", "dates": {"start": "2026-01-01"}, "days": [{"items": [{"text": "x"}]}], **extra}
 
 
+def with_place(**extra):
+    return base(places=[{"name": "P", "lat": 1, "lon": 2}], **extra)
+
+
 def test_unquoted_yaml_time_comes_back_as_clock_time():
-    raw = yaml.safe_load("title: T\ndates: {start: 2026-01-01}\ndays:\n- items:\n  - {time: 12:00, text: lunch}\n")
+    raw = yaml.safe_load("title: T\ndates: {start: 2026-01-01}\ndays:\n- items:\n  - {time: 12:00, text: lunch, place: Bar}\n")
     assert normalize(raw)["days"][0]["items"][0]["time"] == "12:00"
 
 
 def test_brazilian_time_format_is_normalized():
-    raw = base(days=[{"items": [{"time": "16h30", "text": "a"}, {"time": "21h", "text": "b"}]}])
+    raw = base(days=[{"items": [{"time": "16h30", "text": "a", "place": "X"}, {"time": "21h", "text": "b"}]}])
     assert [i["time"] for i in normalize(raw)["days"][0]["items"]] == ["16:30", "21:00"]
 
 
@@ -107,3 +111,16 @@ def test_place_not_found_stops_with_a_clear_message():
     trip = normalize(base(days=[{"items": [{"text": "a", "place": "Nowhere"}]}]))
     with pytest.raises(LookupError, match="Nowhere"):
         resolve_places(trip, {"geocode": {}}, lambda q: [])
+
+
+def test_trip_with_no_places_gets_a_clear_message():
+    with pytest.raises(TripError, match="at least one place"):
+        normalize(base())
+
+
+def test_story_needs_its_fields_and_accepts_one_paragraph():
+    raw = base(days=[{"items": [{"text": "a", "place": "X"}]}], stories=[{"title": "T", "lat": 1, "lon": 2, "story": "One line"}])
+    assert normalize(raw)["stories"][0]["story"] == ["One line"]
+    raw["stories"] = [{"title": "T"}]
+    with pytest.raises(TripError):
+        normalize(raw)

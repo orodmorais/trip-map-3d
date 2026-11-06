@@ -1,7 +1,9 @@
 import pytest
 
 from pipeline.schema import TripError
+from pipeline import tides
 from pipeline.surf import attach_spots, load_spots
+from pipeline.theme import check_theme, deep_merge, load_theme
 from pipeline.tides import pick_stations
 
 MAP = {"id": "map-1", "places": ["a"], "bbox": {"lat0": 20, "lat1": 22, "lon0": -159, "lon1": -157}}
@@ -36,3 +38,25 @@ def test_incomplete_spot_files_are_refused(tmp_path):
     path.write_text("- {id: x, name: X}\n", encoding="utf-8")
     with pytest.raises(TripError):
         load_spots(path)
+
+
+def test_noaa_error_inside_a_normal_answer_becomes_a_note(monkeypatch):
+    answers = {"stations": [{"id": "1", "name": "Bay", "lat": 21, "lng": -158}]}
+    monkeypatch.setattr(tides, "get_json", lambda url, params: answers if "stations" in url else {"error": {"message": "no data"}})
+    trip = {"tide_stations": [], "maps": [MAP], "units": {"waves": "ft"}, "start": "2027-01-01", "end": "2027-01-02"}
+    data, notes = tides.build_tides(trip)
+    assert data["stations"] == [] and any("Bay" in n for n in notes)
+
+
+def test_unknown_tide_station_is_reported(monkeypatch):
+    monkeypatch.setattr(tides, "get_json", lambda url, params: {"stations": []})
+    trip = {"tide_stations": ["999"], "maps": [MAP], "units": {"waves": "ft"}, "start": "2027-01-01", "end": "2027-01-02"}
+    assert any("999" in n for n in tides.build_tides(trip)[1])
+
+
+def test_unsafe_theme_values_are_refused():
+    theme = deep_merge(load_theme(None), {"fonts": {"display": "../../x"}})
+    with pytest.raises(TripError):
+        check_theme(theme)
+    with pytest.raises(TripError):
+        check_theme(deep_merge(load_theme(None), {"colors": {"bg": "red;}"}}))
