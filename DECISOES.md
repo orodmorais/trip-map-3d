@@ -46,3 +46,18 @@ Registro das decisões grandes do trip-map-3d. O "o quê" e as alternativas são
 - **Decisão:** coordenadas, fusos e rotas ficam em `trip.lock.json`, versionado junto com a viagem, para cada nome ser buscado uma vez só.
 - **Alternativa:** cache descartável, refazendo as buscas a cada build.
 - **Por quê:** [aguardando o Rodrigo]
+
+## D10 · Visão geral como um mapa comum
+- **Decisão:** a visão geral de uma viagem com vários mapas é mais um mapa 3D, com o relevo do trajeto inteiro e arcos entre as regiões.
+- **Alternativa:** um mapa-múndi ou mapa 2D simples, como o plano sugeria.
+- **Por quê:** [aguardando o Rodrigo]
+
+## D11 · Terreno em volta do mapa
+- **Decisão:** mapas sem mar nas bordas ganham uma moldura de baixa resolução com o terreno real ao redor, três vezes maior que o mapa.
+- **Alternativa:** cortar o mapa como uma maquete, ou esmaecer as bordas até a cor do fundo.
+- **Por quê:** [aguardando o Rodrigo]
+
+## D12 · Exemplo de O'ahu sem as atividades de risco
+- **Decisão:** o exemplo público usa só pontos públicos. A Haiku Stairs aparece como marco na paisagem, sem atividade, e os pulos saíram.
+- **Alternativa:** manter o roteiro real, só trocando os nomes.
+- **Por quê:** [aguardando o Rodrigo]
