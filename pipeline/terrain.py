@@ -34,6 +34,8 @@ WORLDCOVER = "https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/map
 TERRARIUM = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"
 
 MAX_CELLS = 860          # longest side of the height grid, same as the O'ahu reference
+CONTEXT_CELLS = 480      # the surroundings are seen from far away
+FOREST_CLASS = 10
 MIN_CELL_M = 25          # Copernicus is 30 m: finer cells add bytes, not detail
 TEXTURE_SCALE = 4        # land cover and map texture pixels per height cell
 WORLD_SIZE = 72.0        # longest map side in scene units; camera, fog and route sizes were tuned for this
@@ -83,8 +85,8 @@ def worldcover_tiles(bbox: dict) -> list[tuple[str, float]]:
     return tiles
 
 
-def grid_size(km_x: float, km_y: float) -> tuple[int, int]:
-    cells = min(MAX_CELLS, 1000 * max(km_x, km_y) / MIN_CELL_M)
+def grid_size(km_x: float, km_y: float, max_cells: int = MAX_CELLS) -> tuple[int, int]:
+    cells = min(max_cells, 1000 * max(km_x, km_y) / MIN_CELL_M)
     side = max(km_x, km_y)
     return int(round(cells * km_x / side)), int(round(cells * km_y / side))
 
@@ -174,54 +176,69 @@ def read_terrarium(bbox: dict, width: int, height: int) -> np.ndarray:
     return ndimage.map_coordinates(clean, [grid_y, grid_x], order=1)
 
 
-def build_terrain(bbox: dict) -> tuple[dict, list[str]]:
-    """Return (arrays and meta for one map, notes for the user)."""
-    width, height = grid_size(bbox["km_x"], bbox["km_y"])
+def surface(bbox: dict, kind: str, width: int, height: int) -> tuple[np.ndarray, np.ndarray, list[str]]:
+    """Return (land cover at texture size, heights in meters, notes)."""
     tex_w, tex_h = width * TEXTURE_SCALE, height * TEXTURE_SCALE
-    notes: list[str] = []
-    classes = read_tiles(worldcover_tiles(bbox), bbox, tex_w, tex_h, Resampling.nearest, "uint8")
-    water_grid = np.isin(classes[TEXTURE_SCALE // 2 :: TEXTURE_SCALE, TEXTURE_SCALE // 2 :: TEXTURE_SCALE], WATER_CLASSES)
-    heights = read_tiles(copernicus_tiles(bbox), bbox, width, height, Resampling.bilinear, "float32")
-    land_without_height = ~water_grid & (heights == 0)
-    if (~water_grid).any() and land_without_height.sum() > MISSING_LAND_SHARE * (~water_grid).sum():
-        # some countries have no public Copernicus tiles
+    if kind == "overview":
+        # a whole trip can span hundreds of 1 degree tiles: one low-zoom source is enough at this scale
         heights = read_terrarium(bbox, width, height).astype("float32")
-        notes.append("Copernicus has no data here, using Terrain Tiles for land heights")
-    sea = water_grid & (np.abs(heights) < SEA_LEVEL_TOLERANCE_M)
+        cover = np.where(heights > 0, FOREST_CLASS, 0).astype("uint8")
+        return np.kron(cover, np.ones((TEXTURE_SCALE, TEXTURE_SCALE), dtype="uint8")), heights, []
+    classes = read_tiles(worldcover_tiles(bbox), bbox, tex_w, tex_h, Resampling.nearest, "uint8")
+    if kind == "context":
+        return classes, read_terrarium(bbox, width, height).astype("float32"), []
+    heights = read_tiles(copernicus_tiles(bbox), bbox, width, height, Resampling.bilinear, "float32")
+    land = ~np.isin(classes[TEXTURE_SCALE // 2 :: TEXTURE_SCALE, TEXTURE_SCALE // 2 :: TEXTURE_SCALE], WATER_CLASSES)
+    if land.any() and (land & (heights == 0)).sum() > MISSING_LAND_SHARE * land.sum():
+        # some countries have no public Copernicus tiles
+        return classes, read_terrarium(bbox, width, height).astype("float32"), [
+            "Copernicus has no data here, using Terrain Tiles for land heights"]
+    return classes, heights, []
+
+
+def build_terrain(bbox: dict, kind: str = "map") -> tuple[dict, list[str]]:
+    """Return (arrays and meta, notes). kind: map, context (surroundings) or overview (whole trip)."""
+    width, height = grid_size(bbox["km_x"], bbox["km_y"], CONTEXT_CELLS if kind == "context" else MAX_CELLS)
+    classes, heights, notes = surface(bbox, kind, width, height)
+    water = np.isin(classes[TEXTURE_SCALE // 2 :: TEXTURE_SCALE, TEXTURE_SCALE // 2 :: TEXTURE_SCALE], WATER_CLASSES)
+    sea = water & (heights < SEA_LEVEL_TOLERANCE_M)
     any_sea = bool(sea.any())
-    depth = np.minimum(read_terrarium(bbox, width, height), 0) if any_sea else np.zeros_like(heights)
+    depth = (np.minimum(heights, 0) if kind != "map" else np.minimum(read_terrarium(bbox, width, height), 0)) if any_sea \
+        else np.zeros_like(heights)
     land_heights = np.where(sea, 0.0, np.maximum(heights, HEIGHT_STEP_M))  # polders sit below sea level, still land
-    relief_km = (np.percentile(land_heights[~sea], 99.9) - np.percentile(land_heights[~sea], 1)) / 1000 if (~sea).any() else 0.0
+    low, top = (np.percentile(land_heights[~sea], [1, 99.9]) if (~sea).any() else (0.0, 0.0))
     side_km = max(bbox["km_x"], bbox["km_y"])
     meta = {
         "NX": width, "NY": height, "lat0": bbox["lat0"], "lat1": bbox["lat1"], "lon0": bbox["lon0"], "lon1": bbox["lon1"],
         "km_x": bbox["km_x"], "km_y": bbox["km_y"], "scale": WORLD_SIZE / side_km,
-        "exaggeration": round(exaggeration(side_km, float(relief_km)), 2), "height_step_m": HEIGHT_STEP_M,
-        "max_m": float(land_heights.max()), "has_sea": any_sea, "sea_share": round(float(sea.mean()), 3),
+        "exaggeration": round(exaggeration(side_km, float(top - low) / 1000), 2), "height_step_m": HEIGHT_STEP_M,
+        "height_range": [float(low), float(top)], "max_m": float(land_heights.max()), "has_sea": any_sea,
+        "sea_share": round(float(sea.mean()), 3),
+        "open_border": bool((~sea[0]).any() or (~sea[-1]).any() or (~sea[:, 0]).any() or (~sea[:, -1]).any()),
     }
     return {"meta": meta, "heights": land_heights.astype("float32"), "sea": sea, "depth": depth.astype("float32"),
             "classes": classes}, notes
 
 
-def cached_terrain(bbox: dict, cache_dir: Path) -> tuple[dict, list[str]]:
-    key = hashlib.sha1(json.dumps(bbox, sort_keys=True).encode()).hexdigest()[:16]
+def cached_terrain(bbox: dict, cache_dir: Path, kind: str = "map") -> tuple[dict, list[str]]:
+    key = hashlib.sha1(json.dumps([bbox, kind], sort_keys=True).encode()).hexdigest()[:16]
     path = cache_dir / f"terrain-{key}.npz"
     if path.exists():
         with np.load(path, allow_pickle=False) as data:
             arrays = {name: data[name] for name in ("heights", "sea", "depth", "classes")}
             return {**arrays, "meta": json.loads(str(data["meta"]))}, []
-    terrain, notes = build_terrain(bbox)
+    terrain, notes = build_terrain(bbox, kind)
     cache_dir.mkdir(parents=True, exist_ok=True)
     arrays = {k: v for k, v in terrain.items() if k != "meta"}
     np.savez_compressed(path, meta=json.dumps(terrain["meta"]), **arrays)
     return terrain, notes
 
 
-def write_terrain(terrain: dict, out_dir: Path) -> None:
+def write_terrain(terrain: dict, out_dir: Path, name: str = "") -> None:
     """Binary files for the site: heights in steps (0 = sea) and distance from the coast in cells."""
     out_dir.mkdir(parents=True, exist_ok=True)
     steps = np.clip(np.round(terrain["heights"] / HEIGHT_STEP_M), 0, 65535).astype("<u2")
     from_coast = np.clip(ndimage.distance_transform_edt(terrain["sea"]), 0, 255).astype("u1")
-    (out_dir / "heights.bin").write_bytes(steps.tobytes())
-    (out_dir / "coast.bin").write_bytes(from_coast.tobytes())
-    (out_dir / "dem.json").write_text(json.dumps(terrain["meta"]), encoding="utf-8")
+    (out_dir / f"{name}heights.bin").write_bytes(steps.tobytes())
+    (out_dir / f"{name}coast.bin").write_bytes(from_coast.tobytes())
+    (out_dir / f"{name}dem.json").write_text(json.dumps(terrain["meta"]), encoding="utf-8")

@@ -17,7 +17,7 @@ WAVE_UNITS = ("ft", "m")
 DEFAULT_MAX_REGION_KM = 400
 TOP_LEVEL_KEYS = {
     "title", "subtitle", "dates", "timezone", "language", "units", "home", "regions",
-    "places", "days", "stories", "modules", "services", "downloads",
+    "places", "days", "stories", "modules", "services", "downloads", "surf_spots", "tide_stations", "landmarks",
 }
 PLACE_FIELDS = ("type", "desc", "tip", "photo", "photo_focus", "model", "camera", "maps")
 
@@ -180,6 +180,7 @@ def build_days(raw: dict, start: dt.date, places: list[dict], errors: list[str])
             errors.append(both(f"{where}: needs at least one item", f"{where}: precisa de pelo menos um item"))
             continue
         days.append({"n": len(days) + 1, "date": date.isoformat(), "title": str(entry.get("title") or ""),
+                     "area": str(entry.get("area") or ""), "route": entry.get("route", "road"),
                      "items": items, "route_via": entry.get("route_via") or []})
     return days, all_places
 
@@ -229,7 +230,7 @@ def normalize(raw: Any) -> dict:
         errors.append(both("regions.max_km must be a positive number", "regions.max_km precisa ser um número positivo"))
     modules = raw.get("modules") or {}
     downloads = raw.get("downloads") or []
-    for path in downloads:
+    for path in [*downloads, *[raw[k] for k in ("surf_spots", "landmarks") if raw.get(k)]]:
         if not safe_relative(path):
             errors.append(both(f"downloads: {path} must be inside the project",
                                f"downloads: {path} precisa estar dentro do projeto"))
@@ -246,6 +247,7 @@ def normalize(raw: Any) -> dict:
             "waves": choice(units, "waves", WAVE_UNITS, "ft", errors),
         },
         "region_max_km": max_km,
+        "region_titles": regions.get("titles") or {},
         "modules": {
             "weather": modules.get("weather", True),
             "surf": modules.get("surf", False),
@@ -257,6 +259,9 @@ def normalize(raw: Any) -> dict:
         "days": days,
         "stories": raw.get("stories") or [],
         "downloads": downloads,
+        "surf_spots": raw.get("surf_spots"),
+        "tide_stations": raw.get("tide_stations") or [],
+        "landmarks": raw.get("landmarks"),
         "warnings": unknown_key_warnings(raw),
     }
     if errors:

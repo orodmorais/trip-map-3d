@@ -22,6 +22,7 @@ SHADE_BASE, SHADE_LIGHT, SHADE_CURVE = 0.74, 0.36, 0.12
 CURVE_GAIN = 5
 DEPTH_BLUR_PX = 8
 SEA_FADE_PX = 240
+CONTEXT_FADE_PX = 110
 EDGE_PX = 12
 JPEG_QUALITY = 86
 
@@ -58,12 +59,11 @@ def draw_lines(lines: list[tuple[list, int]], bbox: dict, width: int, height: in
     return np.asarray(mask, dtype="float32") / 255
 
 
-def land_colors(classes: np.ndarray, heights: np.ndarray, land: np.ndarray, map_colors: dict) -> np.ndarray:
+def land_colors(classes: np.ndarray, heights: np.ndarray, height_range: list[float], map_colors: dict) -> np.ndarray:
     """Soft mix of land-cover colors. Forest gets darker with height."""
     low, mid, high, dry, rock = (rgb(map_colors[k]) for k in ("land_low", "land_mid", "land_high", "dry", "rock"))
-    span = max(float(np.percentile(heights[land], 99.5)) - float(np.percentile(heights[land], 2)), 1.0) if land.any() else 1.0
-    forest = ramp(np.clip((heights - np.percentile(heights[land], 2)) / span, 0, 1) if land.any() else heights * 0,
-                  [(0, mix(mid, low, 0.25)), (0.5, mid), (1, high)])
+    bottom, top = height_range
+    forest = ramp(np.clip((heights - bottom) / max(top - bottom, 1.0), 0, 1), [(0, mix(mid, low, 0.25)), (0.5, mid), (1, high)])
     palette = {SHRUB: mix(dry, low, 0.5), GRASS: low, CROP: mix(low, dry, 0.35), BARE: dry, SNOW: rgb(map_colors["snow"]),
                WETLAND: mix(mid, rgb(map_colors["sea_shallow"]), 0.35), MANGROVE: high, MOSS: mix(low, rock, 0.5)}
     weights = ndimage.gaussian_filter((classes == TREE).astype("float32"), 2)
@@ -118,11 +118,11 @@ def edge_color(sea_image: np.ndarray, sea: np.ndarray) -> np.ndarray:
     return np.median(sea_image[border & sea], axis=0) if (border & sea).any() else np.median(sea_image[sea], axis=0)
 
 
-def fade_edges(sea_image: np.ndarray, color: np.ndarray) -> np.ndarray:
+def fade_edges(sea_image: np.ndarray, color: np.ndarray, width_px: int = SEA_FADE_PX) -> np.ndarray:
     height, width = sea_image.shape[:2]
     rows, cols = np.ogrid[:height, :width]
     border = np.minimum(np.minimum(rows, height - 1 - rows), np.minimum(cols, width - 1 - cols))
-    return blend(sea_image, color, 1 - np.clip(border / SEA_FADE_PX, 0, 1))
+    return blend(sea_image, color, 1 - np.clip(border / width_px, 0, 1))
 
 
 def road_masks(roads: list[dict], bbox: dict, width: int, height: int) -> tuple[np.ndarray, np.ndarray]:
@@ -132,7 +132,7 @@ def road_masks(roads: list[dict], bbox: dict, width: int, height: int) -> tuple[
     return draw_lines(major, bbox, width, height), draw_lines(minor, bbox, width, height)
 
 
-def paint(terrain: dict, vectors: dict, map_colors: dict) -> tuple[np.ndarray, str]:
+def paint(terrain: dict, vectors: dict, map_colors: dict, fade_sea: bool = True) -> tuple[np.ndarray, str]:
     """Return the texture as a uint8 RGB array, and the color of the open water around it."""
     meta, classes = terrain["meta"], terrain["classes"]
     height, width = classes.shape
@@ -146,7 +146,7 @@ def paint(terrain: dict, vectors: dict, map_colors: dict) -> tuple[np.ndarray, s
     from_land = ndimage.distance_transform_edt(~land)
     inland = ndimage.distance_transform_edt(land)
 
-    image = land_colors(classes, heights, land, map_colors)
+    image = land_colors(classes, heights, meta["height_range"], map_colors)
     image = image * (1 + 0.04 * ndimage.gaussian_filter(rng.standard_normal((height, width), dtype="float32"), 40)[..., None] * 40)
     image = add_urban(image, classes, map_colors, rng)
     shade, slope = relief_shading(heights, cell_m, meta["exaggeration"])
@@ -163,7 +163,7 @@ def paint(terrain: dict, vectors: dict, map_colors: dict) -> tuple[np.ndarray, s
         depth = ndimage.zoom(terrain["depth"], TEXTURE_SCALE, order=1, grid_mode=True, mode="nearest")[:height, :width]
         ocean = paint_sea(np.maximum(-depth, 0), ndimage.distance_transform_edt(sea), map_colors, rng)
         ocean_color = edge_color(ocean, sea)
-        image = np.where(sea[..., None], fade_edges(ocean, ocean_color), image)
+        image = np.where(sea[..., None], fade_edges(ocean, ocean_color) if fade_sea else ocean, image)
     else:
         ocean_color = rgb(map_colors["sea_deep"])
 
@@ -187,6 +187,11 @@ def paint(terrain: dict, vectors: dict, map_colors: dict) -> tuple[np.ndarray, s
     return (np.clip(image, 0, 1) * 255).astype("uint8"), "#%02X%02X%02X" % tuple(int(c * 255) for c in np.clip(ocean_color, 0, 1))
 
 
-def write_texture(image: np.ndarray, out_dir: Path) -> None:
+def fade_to(image: np.ndarray, color: str) -> np.ndarray:
+    """Dissolve the outer band of a uint8 image into one color."""
+    return (fade_edges(image.astype("float32") / 255, rgb(color), CONTEXT_FADE_PX) * 255).astype("uint8")
+
+
+def write_texture(image: np.ndarray, out_dir: Path, name: str = "map.jpg") -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
-    Image.fromarray(image).save(out_dir / "map.jpg", quality=JPEG_QUALITY, optimize=True, progressive=True)
+    Image.fromarray(image).save(out_dir / name, quality=JPEG_QUALITY, optimize=True, progressive=True)

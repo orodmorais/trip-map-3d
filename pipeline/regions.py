@@ -21,6 +21,8 @@ MARGIN = 0.12
 MAX_RATIO = 1.6
 MIN_MAP_KM = 12
 SAME_POINT_KM = 1e-3
+OVERVIEW_MARGIN = 0.35
+LAT_LIMIT = 80
 
 
 def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -63,7 +65,7 @@ def cluster(points: list[tuple[float, float]], max_km: float) -> list[list[int]]
     return sorted(groups, key=min)
 
 
-def bounding_box(points: list[tuple[float, float]]) -> dict:
+def bounding_box(points: list[tuple[float, float]], margin: float = MARGIN) -> dict:
     """Box with margin, at least MIN_MAP_KM wide, at most MAX_RATIO long.
 
     shortcut: longitudes may pass 180 on trips across the antimeridian; the data fetch must wrap them.
@@ -73,8 +75,8 @@ def bounding_box(points: list[tuple[float, float]]) -> dict:
     lons = [((p[1] - ref + 180) % 360) - 180 + ref for p in points]
     mid_lat, mid_lon = (min(lats) + max(lats)) / 2, (min(lons) + max(lons)) / 2
     km_lon = KM_PER_DEG_LON * math.cos(math.radians(mid_lat))
-    width = max((max(lons) - min(lons)) * km_lon * (1 + 2 * MARGIN), MIN_MAP_KM)
-    height = max((max(lats) - min(lats)) * KM_PER_DEG_LAT * (1 + 2 * MARGIN), MIN_MAP_KM)
+    width = max((max(lons) - min(lons)) * km_lon * (1 + 2 * margin), MIN_MAP_KM)
+    height = max((max(lats) - min(lats)) * KM_PER_DEG_LAT * (1 + 2 * margin), MIN_MAP_KM)
     width, height = max(width, height / MAX_RATIO), max(height, width / MAX_RATIO)
     half_lon, half_lat = width / km_lon / 2, height / KM_PER_DEG_LAT / 2
     return {
@@ -82,6 +84,20 @@ def bounding_box(points: list[tuple[float, float]]) -> dict:
         "lon0": mid_lon - half_lon, "lon1": mid_lon + half_lon,
         "km_x": width, "km_y": height,
     }
+
+
+def grown_box(bbox: dict, factor: float) -> dict:
+    """The same box, centered, wider by a factor. Used for the land around a map."""
+    mid_lat, mid_lon = (bbox["lat0"] + bbox["lat1"]) / 2, (bbox["lon0"] + bbox["lon1"]) / 2
+    half_lat, half_lon = (bbox["lat1"] - bbox["lat0"]) / 2 * factor, (bbox["lon1"] - bbox["lon0"]) / 2 * factor
+    return {"lat0": max(mid_lat - half_lat, -LAT_LIMIT), "lat1": min(mid_lat + half_lat, LAT_LIMIT),
+            "lon0": mid_lon - half_lon, "lon1": mid_lon + half_lon,
+            "km_x": bbox["km_x"] * factor, "km_y": bbox["km_y"] * factor}
+
+
+def overview_box(maps: list[dict]) -> dict:
+    centers = [((m["bbox"]["lat0"] + m["bbox"]["lat1"]) / 2, (m["bbox"]["lon0"] + m["bbox"]["lon1"]) / 2) for m in maps]
+    return grown_box(bounding_box(centers, OVERVIEW_MARGIN), 1.0)
 
 
 def map_title(places: list[dict], index: int) -> str:
@@ -92,14 +108,14 @@ def map_title(places: list[dict], index: int) -> str:
     return f"Map {index}"
 
 
-def build_maps(places: list[dict], max_km: float) -> list[dict]:
+def build_maps(places: list[dict], max_km: float, titles: dict[str, str] | None = None) -> list[dict]:
     points = [(p["lat"], p["lon"]) for p in places]
     maps = []
     for index, group in enumerate(cluster(points, max_km), 1):
         members = [places[i] for i in group]
         maps.append({
             "id": f"map-{index}",
-            "title": map_title(members, index),
+            "title": (titles or {}).get(map_title(members, index), map_title(members, index)),
             "places": [p["id"] for p in members],
             "bbox": bounding_box([points[i] for i in group]),
         })
