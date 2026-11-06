@@ -25,7 +25,7 @@ Je voulais préparer un voyage avec quelque chose que je pouvais vraiment voir. 
 
 Alors je l'ai construit pour mon propre voyage à O'ahu, puis j'en ai fait un modèle pour n'importe quelle destination. Vous décrivez le voyage dans un seul fichier et vous obtenez un site statique : une vraie carte 3D par région, un itinéraire animé pour chaque jour, des épingles et des fiches pour chaque lieu, une page jour par jour pour votre téléphone et la météo de chaque jour.
 
-> Pas de serveur, pas de compte, pas de clé d'API. Un fichier YAML en entrée, un dossier de fichiers statiques en sortie. GitHub Actions reconstruit le site à chaque modification du voyage.
+> Aucun serveur à gérer et aucune clé d'API pour un usage personnel (pour le parcours sans code, un compte GitHub suffit). Un fichier YAML en entrée, un dossier de fichiers statiques en sortie. GitHub Actions reconstruit le site à chaque modification du voyage.
 
 **Démo en ligne :** [Europe](https://orodmorais.github.io/trip-map-3d/) · [O'ahu](https://orodmorais.github.io/trip-map-3d/oahu/) · **Cinq voyages d'exemple :** [examples/](../../examples/) · **Rapport de tests :** [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md)
 
@@ -36,7 +36,7 @@ Alors je l'ai construit pour mon propre voyage à O'ahu, puis j'en ai fait un mo
 | | Ce que vous obtenez |
 |---|---|
 | 🗺️ **Carte 3D** | Relief, profondeur de la mer, rivières, routes, bâtiments et végétation, le tout à partir de données ouvertes, peint avec la palette de votre thème |
-| 🧭 **Itinéraires du jour** | L'itinéraire de chaque jour suit de vraies routes, se trace tout seul et est cadré automatiquement pour qu'aucune fiche ne le cache |
+| 🧭 **Itinéraires du jour** | L'itinéraire de chaque jour suit de vraies routes, se trace tout seul et est cadré automatiquement pour rester dégagé de la fiche |
 | 🌍 **Longs voyages** | Les lieux éloignés deviennent des cartes séparées, reliées par une vue d'ensemble. Lisbonne, Rome et les Alpes font trois cartes, pas une seule tache floue |
 | 📍 **Épingles et fiches** | Chaque lieu a une épingle, une fiche, une photo, un conseil et un monument 3D en option |
 | 🔎 **Recherche et filtres** | Par nom ou par type, sans tenir compte des accents |
@@ -65,12 +65,12 @@ Le même modèle, cinq voyages différents. Chaque capture d'écran est un vrai 
 
 Choisissez la voie qui vous convient. Elles mènent toutes au même `trip.yaml`.
 
-| Vous êtes | Outil | Durée |
-|---|---|---|
-| Pas développeur | **Use this template** sur GitHub, modifiez `trip.yaml` dans le navigateur | environ 10 minutes |
-| Sur Claude, dans un chat | Collez [MASTER_PROMPT.md](../../MASTER_PROMPT.md), répondez aux questions, collez le fichier qu'il génère | environ 15 minutes |
-| Sur Claude Code | Indiquez-lui [SKILL.md](../../SKILL.md) : il vous pose des questions, lance le build, vérifie les captures d'écran et publie | environ 15 minutes |
-| Développeur | Clonez, `python -m pipeline build trip.yaml` | quelques minutes |
+| Vous êtes | Outil |
+|---|---|
+| Pas développeur | **Use this template** sur GitHub, modifiez `trip.yaml` dans le navigateur |
+| Sur Claude, dans un chat | Collez [MASTER_PROMPT.md](../../MASTER_PROMPT.md), répondez aux questions, collez le fichier qu'il génère |
+| Sur Claude Code | Indiquez-lui [SKILL.md](../../SKILL.md) : il vous pose des questions, lance le build, vérifie les captures d'écran et publie |
+| Développeur | Clonez, `python -m pipeline build trip.yaml` |
 
 ### Sans code, sur GitHub
 
@@ -129,7 +129,7 @@ Tous les champs, avec des exemples de valeurs : [examples/trip.example.yaml](../
 |---|---|
 | Couleurs, polices, palette de la carte | `theme.yaml` à côté de `trip.yaml`. Voir [l'exemple](../../examples/theme.example.yaml) |
 | Thème prêt à l'emploi | `preset: oahu` (papier chaud), `minimal` (gris et un seul bleu) ou `dark` |
-| Titres manuscrits | N'importe quelle Google Font en `fonts.display`, affinée avec `display_thin` |
+| Titres manuscrits | N'importe quelle police de `@fontsource` avec des fichiers latins en `fonts.display`, affinée avec `display_thin` |
 | Couleur et icône des épingles par type | `pins.types: {surf: {color: "#1F7FA6", icon: wave}}` |
 | Monument 3D pour un lieu | `model: bridge`, `lighthouse`, `temple`, `tower`, `waterfall`, `pier`, `islet`, `airport`, `house` ou `ridge_stairs` |
 | Vos propres modèles 3D | `landmarks: landmarks.js` dans `trip.yaml`. Voir [l'exemple d'O'ahu](../../examples/oahu/landmarks.js) |
@@ -211,7 +211,7 @@ D'après [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md) : chaque jour de chaqu
 | Tolède, 1 jour | 34 s | 3.6 MB | 0 | 60 / 60 |
 | Lisbonne + Rome + Alpes, 12 jours | 72 s | 13.8 MB | 0 | 60 / 60 |
 
-Les premiers builds incluent tous les téléchargements. Avec un cache déjà rempli, ils prennent de 6 à 24 s.
+Les premiers builds incluent tous les téléchargements. Avec un cache déjà rempli, ils prennent de 6 à 24 s. Les temps du premier build datent de la série précédant les dernières corrections, comme l'indique le [rapport de tests](../TEST_REPORT.md).
 
 > [!NOTE]
 > La colonne téléphone correspond à un viewport de la taille d'un téléphone sur un GPU de Mac, pas à un vrai téléphone. Les fréquences d'images sur de vrais appareils n'ont pas encore été mesurées. Sous 24 fps, le site passe tout seul à un rendu plus léger.
@@ -238,15 +238,17 @@ trip-map-3d/
 │   ├── site.py               #   assemble dist/ : modèle, données, thème, polices, photos
 │   └── __main__.py           #   `python -m pipeline check|build`
 ├── site/                     # front end statique, sans framework
+│   ├── app.js                #   écran principal : caméra, épingles, filtres, routes d'URL
 │   ├── world.js              #   relief, mer, végétation, bâtiments
 │   ├── framing.js            #   cadre l'itinéraire du jour dans l'espace libre à côté de la fiche
 │   ├── routes3d.js           #   itinéraires animés
+│   ├── callouts.js           #   photos à côté de l'itinéraire du jour
 │   ├── landmarks.js          #   kit intégré de monuments 3D
-│   ├── cards.js · search.js  #   fiches, recherche, filtres
+│   ├── cards.js · search.js  #   fiches, recherche
 │   ├── weather.js · surf.js · tides.js
 │   ├── live.js               #   mode aujourd'hui, point bleu, bandeau hors ligne
 │   ├── roteiro.html          #   page d'itinéraire jour par jour
-│   ├── i18n.js               #   en, pt-BR, es. Ajoutez une langue avec un seul bloc
+│   ├── i18n.js               #   en, pt-BR, es. Pour ajouter une langue : un bloc ici et son code dans LANGUAGES, dans pipeline/schema.py
 │   ├── sw.js                 #   service worker
 │   └── vendor/               #   three.js, inclus dans le dépôt
 ├── presets/                  # oahu · minimal · dark

@@ -25,7 +25,7 @@
 
 所以我先为自己的 O'ahu（瓦胡岛）之旅做了它，然后把它变成了适用于任何目的地的模板。你在一个文件里描述行程，就能得到一个静态网站：每个区域一张真实的 3D 地图，每天一条动画路线，每个地点都有图钉和卡片，一个适合在手机上看的逐日行程页，以及每天的天气。
 
-> 不需要服务器，不需要账号，也不需要 API key。输入一个 YAML 文件，输出一个装满静态文件的文件夹。每次你修改行程，GitHub Actions 都会重新构建。
+> 无需运行服务器，个人使用也不需要 API key（无代码方式只需要一个 GitHub 账号）。输入一个 YAML 文件，输出一个装满静态文件的文件夹。每次你修改行程，GitHub Actions 都会重新构建。
 
 **在线演示：** [Europe](https://orodmorais.github.io/trip-map-3d/) · [O'ahu](https://orodmorais.github.io/trip-map-3d/oahu/) · **五个示例行程：** [examples/](../../examples/) · **测试报告：** [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md)
 
@@ -36,7 +36,7 @@
 | | 你能得到什么 |
 |---|---|
 | 🗺️ **3D 地图** | 地形、海洋深度、河流、道路、建筑和植被，全部来自开放数据，并用你的主题配色绘制 |
-| 🧭 **每日路线** | 每天的路线沿真实道路行进，自动绘制，并自动调整视角，保证不会被任何卡片遮挡 |
+| 🧭 **每日路线** | 每天的路线沿真实道路行进，自动绘制，并自动调整视角，避开卡片 |
 | 🌍 **长途旅行** | 相距很远的地点会拆成独立的地图，再由一张总览图串起来。里斯本、罗马和阿尔卑斯山是三张地图，而不是一张糊成一片的平面图 |
 | 📍 **图钉和卡片** | 每个地点都有图钉、卡片、照片、小贴士，以及可选的 3D 地标 |
 | 🔎 **搜索和筛选** | 按名称或类型查找，忽略重音符号 |
@@ -65,12 +65,12 @@
 
 选一条适合你的路径。无论哪条，最后都会得到同一个 `trip.yaml`。
 
-| 你是 | 使用方式 | 用时 |
-|---|---|---|
-| 不写代码的人 | 在 GitHub 上点 **Use this template**（使用此模板），在浏览器里编辑 `trip.yaml` | 约 10 分钟 |
-| 在聊天中使用 Claude | 粘贴 [MASTER_PROMPT.md](../../MASTER_PROMPT.md)，回答问题，再把它生成的文件粘贴进去 | 约 15 分钟 |
-| 使用 Claude Code | 让它读取 [SKILL.md](../../SKILL.md)：它会向你提问、构建、检查截图并发布 | 约 15 分钟 |
-| 开发者 | 克隆仓库，运行 `python -m pipeline build trip.yaml` | 几分钟 |
+| 你是 | 使用方式 |
+|---|---|
+| 不写代码的人 | 在 GitHub 上点 **Use this template**（使用此模板），在浏览器里编辑 `trip.yaml` |
+| 在聊天中使用 Claude | 粘贴 [MASTER_PROMPT.md](../../MASTER_PROMPT.md)，回答问题，再把它生成的文件粘贴进去 |
+| 使用 Claude Code | 让它读取 [SKILL.md](../../SKILL.md)：它会向你提问、构建、检查截图并发布 |
+| 开发者 | 克隆仓库，运行 `python -m pipeline build trip.yaml` |
 
 ### 不写代码，直接在 GitHub 上完成
 
@@ -129,7 +129,7 @@ days:
 |---|---|
 | 颜色、字体、地图配色 | 在 `trip.yaml` 旁边放一个 `theme.yaml`。参见[示例](../../examples/theme.example.yaml) |
 | 现成主题 | `preset: oahu`（暖色纸张风格）、`minimal`（灰色加一种蓝色）或 `dark` |
-| 手写风格标题 | 任意 Google Font 都可以用作 `fonts.display`，再用 `display_thin` 调细 |
+| 手写风格标题 | `@fontsource` 上任意带拉丁字符文件的字体都可以用作 `fonts.display`，再用 `display_thin` 调细 |
 | 按类型设置图钉颜色和图标 | `pins.types: {surf: {color: "#1F7FA6", icon: wave}}` |
 | 为地点添加 3D 地标 | `model: bridge`、`lighthouse`、`temple`、`tower`、`waterfall`、`pier`、`islet`、`airport`、`house` 或 `ridge_stairs` |
 | 你自己的 3D 模型 | 在 `trip.yaml` 中写 `landmarks: landmarks.js`。参见 [O'ahu 示例](../../examples/oahu/landmarks.js) |
@@ -211,7 +211,7 @@ trip.yaml ──▶ 1. 行程 ──▶ 2. 区域 ──▶ 3. 地图 ──▶ 
 | 托莱多，1 天 | 34 s | 3.6 MB | 0 | 60 / 60 |
 | 里斯本 + 罗马 + 阿尔卑斯山，12 天 | 72 s | 13.8 MB | 0 | 60 / 60 |
 
-首次构建包含所有下载。有缓存时需要 6 到 24 s。
+首次构建包含所有下载。有缓存时需要 6 到 24 s。首次构建时间来自最后几处修复之前的那一轮测试，详见[测试报告](../TEST_REPORT.md)。
 
 > [!NOTE]
 > 手机一栏是在 Mac GPU 上模拟的手机尺寸视口，而不是真实手机。真机帧率尚未测量。帧率低于 24 fps 时，网站会自动切换到更轻量的画面。
@@ -238,15 +238,17 @@ trip-map-3d/
 │   ├── site.py               #   组装 dist/：模板、数据、主题、字体、照片
 │   └── __main__.py           #   `python -m pipeline check|build`
 ├── site/                     # 静态前端，无框架
+│   ├── app.js                #   主界面：相机、图钉、筛选、URL 路由
 │   ├── world.js              #   地形、海洋、植被、建筑
 │   ├── framing.js            #   把当天的路线放进卡片旁边的空白区域
 │   ├── routes3d.js           #   动画路线
+│   ├── callouts.js           #   路线旁的照片标注
 │   ├── landmarks.js          #   内置 3D 地标套件
-│   ├── cards.js · search.js  #   卡片、搜索、筛选
+│   ├── cards.js · search.js  #   卡片、搜索
 │   ├── weather.js · surf.js · tides.js
 │   ├── live.js               #   今日模式、蓝点、离线提示条
 │   ├── roteiro.html          #   逐日行程页
-│   ├── i18n.js               #   en、pt-BR、es。新增一种语言只需一个代码块
+│   ├── i18n.js               #   en、pt-BR、es。新增语言：在这里加一个代码块，并在 pipeline/schema.py 的 LANGUAGES 中加入语言代码
 │   ├── sw.js                 #   service worker
 │   └── vendor/               #   three.js，随仓库附带
 ├── presets/                  # oahu · minimal · dark

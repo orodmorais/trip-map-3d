@@ -25,7 +25,7 @@
 
 그래서 제 오아후 여행을 위해 직접 만들었고, 그다음 어떤 여행지에도 쓸 수 있는 템플릿으로 바꿨습니다. 여행 내용을 파일 하나에 적으면 정적 웹사이트가 만들어집니다. 지역마다 실제 3D 지도 한 장, 날마다 애니메이션으로 그려지는 경로, 모든 장소의 핀과 카드, 휴대폰용 일별 페이지, 그리고 날짜별 날씨까지 담깁니다.
 
-> 서버도, 계정도, API 키도 필요 없습니다. YAML 파일 하나를 넣으면 정적 파일 폴더 하나가 나옵니다. 여행 내용을 수정할 때마다 GitHub Actions가 사이트를 다시 빌드합니다.
+> 운영할 서버가 필요 없고, 개인 용도라면 API 키도 필요 없습니다(코드 없는 방법에 필요한 것은 GitHub 계정뿐입니다). YAML 파일 하나를 넣으면 정적 파일 폴더 하나가 나옵니다. 여행 내용을 수정할 때마다 GitHub Actions가 사이트를 다시 빌드합니다.
 
 **라이브 데모:** [Europe](https://orodmorais.github.io/trip-map-3d/) · [O'ahu](https://orodmorais.github.io/trip-map-3d/oahu/) · **예시 여행 5개:** [examples/](../../examples/) · **테스트 보고서:** [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md)
 
@@ -36,7 +36,7 @@
 | | 제공 기능 |
 |---|---|
 | 🗺️ **3D 지도** | 지형, 수심, 강, 도로, 건물, 식생을 모두 오픈 데이터로 만들고 테마 팔레트로 칠합니다 |
-| 🧭 **일별 경로** | 각 날의 경로는 실제 도로를 따라 저절로 그려지며, 카드에 가려지지 않도록 자동으로 화면에 맞춰집니다 |
+| 🧭 **일별 경로** | 각 날의 경로는 실제 도로를 따라 저절로 그려지며, 카드를 피해 자동으로 화면에 맞춰집니다 |
 | 🌍 **장거리 여행** | 멀리 떨어진 장소는 별도의 지도로 나뉘고 개요 지도로 연결됩니다. 리스본, 로마, 알프스는 흐릿한 평면 하나가 아니라 지도 세 장이 됩니다 |
 | 📍 **핀과 카드** | 모든 장소에 핀, 카드, 사진, 팁, 그리고 선택적으로 3D 랜드마크가 붙습니다 |
 | 🔎 **검색과 필터** | 이름이나 유형으로 검색하며, 악센트 부호는 무시합니다 |
@@ -65,12 +65,12 @@
 
 자신에게 맞는 방법을 고르세요. 어느 방법이든 결국 같은 `trip.yaml`이 만들어집니다.
 
-| 사용자 | 방법 | 소요 시간 |
-|---|---|---|
-| 코딩을 하지 않는 분 | GitHub에서 **Use this template**을 누르고 브라우저에서 `trip.yaml` 편집 | 약 10분 |
-| 채팅으로 Claude를 쓰는 분 | [MASTER_PROMPT.md](../../MASTER_PROMPT.md)를 붙여 넣고 질문에 답한 뒤, 작성된 파일을 붙여 넣기 | 약 15분 |
-| Claude Code를 쓰는 분 | [SKILL.md](../../SKILL.md)를 지정하면 인터뷰, 빌드, 스크린샷 확인, 배포까지 진행 | 약 15분 |
-| 개발자 | 클론한 뒤 `python -m pipeline build trip.yaml` | 몇 분 |
+| 사용자 | 방법 |
+|---|---|
+| 코딩을 하지 않는 분 | GitHub에서 **Use this template**을 누르고 브라우저에서 `trip.yaml` 편집 |
+| 채팅으로 Claude를 쓰는 분 | [MASTER_PROMPT.md](../../MASTER_PROMPT.md)를 붙여 넣고 질문에 답한 뒤, 작성된 파일을 붙여 넣기 |
+| Claude Code를 쓰는 분 | [SKILL.md](../../SKILL.md)를 지정하면 인터뷰, 빌드, 스크린샷 확인, 배포까지 진행 |
+| 개발자 | 클론한 뒤 `python -m pipeline build trip.yaml` |
 
 ### 코드 없이 GitHub에서
 
@@ -129,7 +129,7 @@ days:
 |---|---|
 | 색상, 글꼴, 지도 팔레트 | `trip.yaml` 옆에 `theme.yaml`을 둡니다. [예시](../../examples/theme.example.yaml) 참고 |
 | 기본 제공 테마 | `preset: oahu`(따뜻한 종이 느낌), `minimal`(회색과 파란색 하나) 또는 `dark` |
-| 손글씨 느낌의 제목 | 원하는 Google Font를 `fonts.display`로 지정하고, `display_thin`으로 가늘게 조정 |
+| 손글씨 느낌의 제목 | `@fontsource`에서 라틴 파일이 있는 글꼴을 `fonts.display`로 지정하고, `display_thin`으로 가늘게 조정 |
 | 유형별 핀 색상과 아이콘 | `pins.types: {surf: {color: "#1F7FA6", icon: wave}}` |
 | 장소의 3D 랜드마크 | `model: bridge`, `lighthouse`, `temple`, `tower`, `waterfall`, `pier`, `islet`, `airport`, `house` 또는 `ridge_stairs` |
 | 직접 만든 3D 모델 | `trip.yaml`에 `landmarks: landmarks.js`. [오아후 예시](../../examples/oahu/landmarks.js) 참고 |
@@ -211,7 +211,7 @@ trip.yaml ──▶ 1. Trip ──▶ 2. Regions ──▶ 3. Map ──▶ 4. S
 | 톨레도, 1일 | 34 s | 3.6 MB | 0 | 60 / 60 |
 | 리스본 + 로마 + 알프스, 12일 | 72 s | 13.8 MB | 0 | 60 / 60 |
 
-첫 빌드에는 모든 다운로드가 포함됩니다. 캐시가 있는 상태에서는 6~24 s가 걸립니다.
+첫 빌드에는 모든 다운로드가 포함됩니다. 캐시가 있는 상태에서는 6~24 s가 걸립니다. 첫 빌드 시간은 마지막 수정 이전 실행에서 측정한 값입니다([테스트 보고서](../TEST_REPORT.md) 참고).
 
 > [!NOTE]
 > 휴대폰 열은 Mac GPU에서 휴대폰 크기 뷰포트로 측정한 값이며, 실제 휴대폰이 아닙니다. 실제 기기의 프레임 레이트는 아직 측정하지 않았습니다. 24 fps 아래로 떨어지면 사이트가 알아서 더 가벼운 화면으로 전환합니다.
@@ -238,15 +238,17 @@ trip-map-3d/
 │   ├── site.py               #   dist/ 조립: 템플릿, 데이터, 테마, 글꼴, 사진
 │   └── __main__.py           #   `python -m pipeline check|build`
 ├── site/                     # 정적 프런트엔드, 프레임워크 없음
+│   ├── app.js                #   메인 화면: 카메라, 핀, 필터, URL 라우팅
 │   ├── world.js              #   지형, 바다, 식생, 건물
 │   ├── framing.js            #   그날의 경로를 카드 옆 빈 공간에 맞춤
 │   ├── routes3d.js           #   애니메이션 경로
+│   ├── callouts.js           #   경로 옆 사진
 │   ├── landmarks.js          #   내장 3D 랜드마크 키트
-│   ├── cards.js · search.js  #   카드, 검색, 필터
+│   ├── cards.js · search.js  #   카드, 검색
 │   ├── weather.js · surf.js · tides.js
 │   ├── live.js               #   오늘 모드, 파란 점, 오프라인 배너
 │   ├── roteiro.html          #   일별 일정 페이지
-│   ├── i18n.js               #   en, pt-BR, es. 블록 하나만 추가하면 언어 추가
+│   ├── i18n.js               #   en, pt-BR, es. 언어 추가: 여기에 블록 하나, pipeline/schema.py의 LANGUAGES에 코드 추가
 │   ├── sw.js                 #   서비스 워커
 │   └── vendor/               #   three.js (저장소에 포함)
 ├── presets/                  # oahu · minimal · dark

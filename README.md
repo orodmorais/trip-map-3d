@@ -23,7 +23,7 @@ I wanted to plan a trip with something I could actually see. On a flat map, a sh
 
 So I built it for my own trip to O'ahu, and then turned it into a template for any destination. You describe the trip in one file and get a static website: one real 3D map per region, an animated route for every day, pins and cards for every place, a day-by-day page for your phone, and the weather for each day.
 
-> No servers, no accounts, no API keys. One YAML file in, one folder of static files out. GitHub Actions rebuilds it every time you edit the trip.
+> No servers to run, and no API keys for personal use (a GitHub account is all the no-code path needs). One YAML file in, one folder of static files out. GitHub Actions rebuilds it every time you edit the trip.
 
 **Live demo:** [Europe](https://orodmorais.github.io/trip-map-3d/) · [O'ahu](https://orodmorais.github.io/trip-map-3d/oahu/) · **Five example trips:** [examples/](examples/) · **Test report:** [docs/TEST_REPORT.md](docs/TEST_REPORT.md)
 
@@ -34,7 +34,7 @@ So I built it for my own trip to O'ahu, and then turned it into a template for a
 | | What you get |
 |---|---|
 | 🗺️ **3D map** | Terrain, sea depth, rivers, roads, buildings and vegetation, all from open data, painted with your theme's palette |
-| 🧭 **Day routes** | Each day's route follows real roads, draws itself, and is framed automatically so no card ever covers it |
+| 🧭 **Day routes** | Each day's route follows real roads, draws itself, and is framed automatically to stay clear of the card |
 | 🌍 **Long trips** | Places far apart become separate maps joined by an overview. Lisbon, Rome and the Alps are three maps, not one flat blur |
 | 📍 **Pins and cards** | Every place gets a pin, a card, a photo, a tip, and an optional 3D landmark |
 | 🔎 **Search and filters** | By name or type, ignoring accents |
@@ -63,12 +63,12 @@ The same template, five different trips. Every screenshot is a real build from [
 
 Pick the path that fits you. They all end in the same `trip.yaml`.
 
-| You are | Use | Time |
-|---|---|---|
-| Not a coder | **Use this template** on GitHub, edit `trip.yaml` in the browser | about 10 minutes |
-| Using Claude in a chat | Paste [MASTER_PROMPT.md](MASTER_PROMPT.md), answer the questions, paste the file it writes | about 15 minutes |
-| Using Claude Code | Point it at [SKILL.md](SKILL.md): it interviews you, builds, checks screenshots and publishes | about 15 minutes |
-| A developer | Clone, `python -m pipeline build trip.yaml` | a few minutes |
+| You are | Use |
+|---|---|
+| Not a coder | **Use this template** on GitHub, edit `trip.yaml` in the browser |
+| Using Claude in a chat | Paste [MASTER_PROMPT.md](MASTER_PROMPT.md), answer the questions, paste the file it writes |
+| Using Claude Code | Point it at [SKILL.md](SKILL.md): it interviews you, builds, checks screenshots and publishes |
+| A developer | Clone, `python -m pipeline build trip.yaml` |
 
 ### No code, on GitHub
 
@@ -127,7 +127,7 @@ Every field, with sample values: [examples/trip.example.yaml](examples/trip.exam
 |---|---|
 | Colors, fonts, map palette | `theme.yaml` next to `trip.yaml`. See [the example](examples/theme.example.yaml) |
 | Ready-made theme | `preset: oahu` (warm paper), `minimal` (grays and one blue) or `dark` |
-| Hand-drawn titles | Any Google Font as `fonts.display`, thinned with `display_thin` |
+| Hand-drawn titles | Any font on `@fontsource` with Latin files as `fonts.display`, thinned with `display_thin` |
 | Pin color and icon by type | `pins.types: {surf: {color: "#1F7FA6", icon: wave}}` |
 | 3D landmark for a place | `model: bridge`, `lighthouse`, `temple`, `tower`, `waterfall`, `pier`, `islet`, `airport`, `house` or `ridge_stairs` |
 | Your own 3D models | `landmarks: landmarks.js` in `trip.yaml`. See [the O'ahu example](examples/oahu/landmarks.js) |
@@ -209,7 +209,7 @@ From [docs/TEST_REPORT.md](docs/TEST_REPORT.md): every day of every trip opened 
 | Toledo, 1 day | 34 s | 3.6 MB | 0 | 60 / 60 |
 | Lisbon + Rome + Alps, 12 days | 72 s | 13.8 MB | 0 | 60 / 60 |
 
-First builds include every download. With a warm cache they take 6 to 24 s.
+First builds include every download. With a warm cache they take 6 to 24 s. The first-build times are from the run before the last fixes, as the [test report](docs/TEST_REPORT.md) says.
 
 > [!NOTE]
 > The phone column is a phone-sized viewport on a Mac GPU, not a real phone. Real-device frame rates have not been measured yet. Below 24 fps the site switches to a lighter picture by itself.
@@ -236,15 +236,17 @@ trip-map-3d/
 │   ├── site.py               #   assembles dist/: template, data, theme, fonts, photos
 │   └── __main__.py           #   `python -m pipeline check|build`
 ├── site/                     # static front end, no framework
+│   ├── app.js                #   main screen: camera, pins, filters, URL routes
 │   ├── world.js              #   terrain, sea, vegetation, buildings
 │   ├── framing.js            #   fits the day's route in the free space beside the card
 │   ├── routes3d.js           #   animated routes
+│   ├── callouts.js           #   photo callouts beside the day's route
 │   ├── landmarks.js          #   built-in 3D landmark kit
-│   ├── cards.js · search.js  #   cards, search, filters
+│   ├── cards.js · search.js  #   cards, search
 │   ├── weather.js · surf.js · tides.js
 │   ├── live.js               #   today mode, blue dot, offline banner
 │   ├── roteiro.html          #   day-by-day itinerary page
-│   ├── i18n.js               #   en, pt-BR, es. Add a language with one block
+│   ├── i18n.js               #   en, pt-BR, es. Add a language with one block here and its code in LANGUAGES in pipeline/schema.py
 │   ├── sw.js                 #   service worker
 │   └── vendor/               #   three.js, vendored
 ├── presets/                  # oahu · minimal · dark

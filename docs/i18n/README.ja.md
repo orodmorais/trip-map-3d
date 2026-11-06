@@ -25,7 +25,7 @@
 
 そこで、自分のオアフ島旅行のために作り、それをどんな目的地にも使えるテンプレートにしました。旅行の内容をファイル 1 つに書くと、静的ウェブサイトができあがります。地域ごとに 1 枚の本物の 3D 地図、日ごとのアニメーション付きルート、すべての場所のピンとカード、スマートフォン向けの日別ページ、そして各日の天気が入っています。
 
-> サーバーもアカウントも API キーも不要です。YAML ファイルを 1 つ入れると、静的ファイルのフォルダが 1 つ出てきます。旅程を編集するたびに、GitHub Actions がサイトを再ビルドします。
+> 運用するサーバーは不要で、個人利用なら API キーも要りません（コードなしの方法に必要なのは GitHub アカウントだけです）。YAML ファイルを 1 つ入れると、静的ファイルのフォルダが 1 つ出てきます。旅程を編集するたびに、GitHub Actions がサイトを再ビルドします。
 
 **ライブデモ：** [Europe](https://orodmorais.github.io/trip-map-3d/) · [O'ahu](https://orodmorais.github.io/trip-map-3d/oahu/) · **5 つのサンプル旅行：** [examples/](../../examples/) · **テストレポート：** [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md)
 
@@ -36,7 +36,7 @@
 | | 主な機能 |
 |---|---|
 | 🗺️ **3D 地図** | 地形、水深、川、道路、建物、植生。すべてオープンデータから作成し、テーマのパレットで彩色します |
-| 🧭 **日ごとのルート** | 各日のルートは実際の道路に沿って自動で描かれ、カードに隠れないよう自動的に画面内に収まります |
+| 🧭 **日ごとのルート** | 各日のルートは実際の道路に沿って自動で描かれ、カードを避けて自動的に画面内に収まります |
 | 🌍 **長距離の旅行** | 離れた場所は別々の地図になり、全体図でつながります。リスボン、ローマ、アルプスはぼやけた 1 枚の平面ではなく、3 枚の地図になります |
 | 📍 **ピンとカード** | すべての場所にピン、カード、写真、ヒント、さらにオプションで 3D ランドマークが付きます |
 | 🔎 **検索とフィルター** | 名前または種類で検索できます。アクセント記号は区別しません |
@@ -65,12 +65,12 @@
 
 自分に合った方法を選んでください。どの方法でも、最終的には同じ `trip.yaml` ができあがります。
 
-| あなたの状況 | 方法 | 所要時間 |
-|---|---|---|
-| コードは書かない | GitHub で **Use this template** を押し、ブラウザで `trip.yaml` を編集 | 約 10 分 |
-| チャットで Claude を使う | [MASTER_PROMPT.md](../../MASTER_PROMPT.md) を貼り付けて質問に答え、生成されたファイルを貼り付ける | 約 15 分 |
-| Claude Code を使う | [SKILL.md](../../SKILL.md) を指定するだけ。ヒアリング、ビルド、スクリーンショットの確認、公開まで行います | 約 15 分 |
-| 開発者 | clone して `python -m pipeline build trip.yaml` | 数分 |
+| あなたの状況 | 方法 |
+|---|---|
+| コードは書かない | GitHub で **Use this template** を押し、ブラウザで `trip.yaml` を編集 |
+| チャットで Claude を使う | [MASTER_PROMPT.md](../../MASTER_PROMPT.md) を貼り付けて質問に答え、生成されたファイルを貼り付ける |
+| Claude Code を使う | [SKILL.md](../../SKILL.md) を指定するだけ。ヒアリング、ビルド、スクリーンショットの確認、公開まで行います |
+| 開発者 | clone して `python -m pipeline build trip.yaml` |
 
 ### コード不要、GitHub だけで
 
@@ -129,7 +129,7 @@ days:
 |---|---|
 | 色、フォント、地図のパレット | `trip.yaml` と同じ場所に `theme.yaml` を置きます。[サンプル](../../examples/theme.example.yaml)を参照 |
 | 既製のテーマ | `preset: oahu`（温かみのある紙の質感）、`minimal`（グレーと 1 色の青）、`dark` |
-| 手書き風のタイトル | 任意の Google Font を `fonts.display` に指定し、`display_thin` で細くします |
+| 手書き風のタイトル | `@fontsource` にあるラテン文字ファイル付きのフォントを `fonts.display` に指定し、`display_thin` で細くします |
 | 種類ごとのピンの色とアイコン | `pins.types: {surf: {color: "#1F7FA6", icon: wave}}` |
 | 場所ごとの 3D ランドマーク | `model: bridge`、`lighthouse`、`temple`、`tower`、`waterfall`、`pier`、`islet`、`airport`、`house` または `ridge_stairs` |
 | 独自の 3D モデル | `trip.yaml` に `landmarks: landmarks.js`。[オアフのサンプル](../../examples/oahu/landmarks.js)を参照 |
@@ -211,7 +211,7 @@ trip.yaml ──▶ 1. Trip ──▶ 2. Regions ──▶ 3. Map ──▶ 4. S
 | トレド、1 日間 | 34 s | 3.6 MB | 0 | 60 / 60 |
 | リスボン + ローマ + アルプス、12 日間 | 72 s | 13.8 MB | 0 | 60 / 60 |
 
-初回ビルドにはすべてのダウンロードが含まれます。キャッシュがある状態では 6〜24 s で終わります。
+初回ビルドにはすべてのダウンロードが含まれます。キャッシュがある状態では 6〜24 s で終わります。初回ビルドの時間は、最後の修正より前の実行で計測したものです（[テストレポート](../TEST_REPORT.md)に記載）。
 
 > [!NOTE]
 > スマートフォンの列は、Mac の GPU 上でスマートフォンサイズのビューポートを使って計測した値で、実機ではありません。実機でのフレームレートはまだ計測していません。24 fps を下回ると、サイトは自動的に軽量な描画に切り替わります。
@@ -238,15 +238,17 @@ trip-map-3d/
 │   ├── site.py               #   dist/ を組み立てる：テンプレート、データ、テーマ、フォント、写真
 │   └── __main__.py           #   `python -m pipeline check|build`
 ├── site/                     # 静的なフロントエンド、フレームワークなし
+│   ├── app.js                #   メイン画面：カメラ、ピン、フィルター、URL ルーティング
 │   ├── world.js              #   地形、海、植生、建物
 │   ├── framing.js            #   その日のルートを、カード横の空きスペースに収める
 │   ├── routes3d.js           #   アニメーション付きルート
+│   ├── callouts.js           #   ルート横の写真
 │   ├── landmarks.js          #   内蔵の 3D ランドマークキット
-│   ├── cards.js · search.js  #   カード、検索、フィルター
+│   ├── cards.js · search.js  #   カード、検索
 │   ├── weather.js · surf.js · tides.js
 │   ├── live.js               #   今日モード、青い点、オフラインバナー
 │   ├── roteiro.html          #   日ごとの旅程ページ
-│   ├── i18n.js               #   en、pt-BR、es。ブロックを 1 つ追加すれば言語を増やせる
+│   ├── i18n.js               #   en、pt-BR、es。言語の追加：ここにブロックを 1 つ、pipeline/schema.py の LANGUAGES にコードを追加
 │   ├── sw.js                 #   サービスワーカー
 │   └── vendor/               #   three.js（リポジトリに同梱）
 ├── presets/                  # oahu · minimal · dark

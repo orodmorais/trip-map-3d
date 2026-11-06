@@ -25,7 +25,7 @@ Eu queria planejar uma viagem com algo que eu conseguisse ver de verdade. Num ma
 
 Então montei isso para a minha viagem a O'ahu e depois transformei num template para qualquer destino. Você descreve a viagem em um arquivo e ganha um site estático: um mapa 3D de verdade por região, uma rota animada para cada dia, pins e cards para cada lugar, uma página dia a dia para o celular e a previsão do tempo de cada dia.
 
-> Sem servidores, sem contas, sem chaves de API. Entra um arquivo YAML, sai uma pasta de arquivos estáticos. O GitHub Actions refaz o build toda vez que você edita a viagem.
+> Nenhum servidor para manter e nenhuma chave de API para uso pessoal (no caminho sem código, basta uma conta no GitHub). Entra um arquivo YAML, sai uma pasta de arquivos estáticos. O GitHub Actions refaz o build toda vez que você edita a viagem.
 
 **Demo ao vivo:** [Europe](https://orodmorais.github.io/trip-map-3d/) · [O'ahu](https://orodmorais.github.io/trip-map-3d/oahu/) · **Cinco viagens de exemplo:** [examples/](../../examples/) · **Relatório de testes:** [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md)
 
@@ -36,7 +36,7 @@ Então montei isso para a minha viagem a O'ahu e depois transformei num template
 | | O que você ganha |
 |---|---|
 | 🗺️ **Mapa 3D** | Relevo, profundidade do mar, rios, estradas, prédios e vegetação, tudo a partir de dados abertos e pintado com a paleta do seu tema |
-| 🧭 **Rotas do dia** | A rota de cada dia segue estradas reais, se desenha sozinha e é enquadrada automaticamente para que nenhum card fique por cima dela |
+| 🧭 **Rotas do dia** | A rota de cada dia segue estradas reais, se desenha sozinha e é enquadrada automaticamente para ficar livre do card |
 | 🌍 **Viagens longas** | Lugares muito distantes viram mapas separados, ligados por uma visão geral. Lisboa, Roma e os Alpes são três mapas, não um borrão achatado |
 | 📍 **Pins e cards** | Cada lugar ganha um pin, um card, uma foto, uma dica e um marco 3D opcional |
 | 🔎 **Busca e filtros** | Por nome ou tipo, ignorando acentos |
@@ -44,7 +44,7 @@ Então montei isso para a minha viagem a O'ahu e depois transformei num template
 | ⛅ **Previsão do tempo** | Uma previsão para cada dia da viagem, além do nascer e do pôr do sol |
 | 📡 **Modo hoje e offline** | Abre no dia de hoje, mostra onde você está com um ponto azul, instala como app e funciona sem sinal |
 | 🌊 **Módulos opcionais** | Picos de surf com nota de 0 a 5, marés, seus próprios modelos 3D |
-| 🎨 **Visual 100% personalizável** | Fontes, cores, paleta do mapa, ícones dos pins, estilo dos selos. Três presets incluídos |
+| 🎨 **Tema personalizável** | Fontes, cores, paleta do mapa, ícones dos pins, estilo dos selos. Três presets incluídos |
 | 🗣️ **Idiomas do site** | Inglês, português e espanhol, com °C ou °F e km ou milhas |
 
 ---
@@ -65,12 +65,12 @@ O mesmo template, cinco viagens diferentes. Cada captura de tela é um build rea
 
 Escolha o caminho que combina com você. Todos terminam no mesmo `trip.yaml`.
 
-| Você | O que usar | Tempo |
-|---|---|---|
-| Não programa | **Use this template** no GitHub e edite o `trip.yaml` no navegador | cerca de 10 minutos |
-| Usa o Claude em um chat | Cole o [MASTER_PROMPT.md](../../MASTER_PROMPT.md), responda às perguntas e cole o arquivo que ele gerar | cerca de 15 minutos |
-| Usa o Claude Code | Aponte para o [SKILL.md](../../SKILL.md): ele entrevista você, faz o build, confere as capturas de tela e publica | cerca de 15 minutos |
-| É desenvolvedor | Clone e rode `python -m pipeline build trip.yaml` | poucos minutos |
+| Você | O que usar |
+|---|---|
+| Não programa | **Use this template** no GitHub e edite o `trip.yaml` no navegador |
+| Usa o Claude em um chat | Cole o [MASTER_PROMPT.md](../../MASTER_PROMPT.md), responda às perguntas e cole o arquivo que ele gerar |
+| Usa o Claude Code | Aponte para o [SKILL.md](../../SKILL.md): ele entrevista você, faz o build, confere as capturas de tela e publica |
+| É desenvolvedor | Clone e rode `python -m pipeline build trip.yaml` |
 
 ### Sem código, no GitHub
 
@@ -129,7 +129,7 @@ Todos os campos, com valores de exemplo: [examples/trip.example.yaml](../../exam
 |---|---|
 | Cores, fontes, paleta do mapa | `theme.yaml` ao lado do `trip.yaml`. Veja [o exemplo](../../examples/theme.example.yaml) |
 | Tema pronto | `preset: oahu` (papel em tom quente), `minimal` (cinzas e um azul) ou `dark` |
-| Títulos com cara de escritos à mão | Qualquer Google Font como `fonts.display`, mais fina com `display_thin` |
+| Títulos com cara de escritos à mão | Qualquer fonte do `@fontsource` com arquivos latinos como `fonts.display`, mais fina com `display_thin` |
 | Cor e ícone do pin por tipo | `pins.types: {surf: {color: "#1F7FA6", icon: wave}}` |
 | Marco 3D para um lugar | `model: bridge`, `lighthouse`, `temple`, `tower`, `waterfall`, `pier`, `islet`, `airport`, `house` ou `ridge_stairs` |
 | Seus próprios modelos 3D | `landmarks: landmarks.js` no `trip.yaml`. Veja [o exemplo de O'ahu](../../examples/oahu/landmarks.js) |
@@ -211,7 +211,7 @@ Do [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md): cada dia de cada viagem foi
 | Toledo, 1 dia | 34 s | 3.6 MB | 0 | 60 / 60 |
 | Lisboa + Roma + Alpes, 12 dias | 72 s | 13.8 MB | 0 | 60 / 60 |
 
-Os primeiros builds incluem todos os downloads. Com o cache já preenchido, levam de 6 a 24 s.
+Os primeiros builds incluem todos os downloads. Com o cache já preenchido, levam de 6 a 24 s. Os tempos de primeiro build são da rodada anterior às últimas correções, como diz o [relatório de testes](../TEST_REPORT.md).
 
 > [!NOTE]
 > A coluna de celular é uma viewport do tamanho de um celular rodando em uma GPU de Mac, não um celular de verdade. As taxas de quadros em aparelhos reais ainda não foram medidas. Abaixo de 24 fps, o site muda sozinho para uma imagem mais leve.
@@ -238,15 +238,17 @@ trip-map-3d/
 │   ├── site.py               #   monta o dist/: template, dados, tema, fontes, fotos
 │   └── __main__.py           #   `python -m pipeline check|build`
 ├── site/                     # front end estático, sem framework
+│   ├── app.js                #   tela principal: câmera, pins, filtros, rotas de URL
 │   ├── world.js              #   relevo, mar, vegetação, prédios
 │   ├── framing.js            #   encaixa a rota do dia no espaço livre ao lado do card
 │   ├── routes3d.js           #   rotas animadas
+│   ├── callouts.js           #   fotos ao lado da rota do dia
 │   ├── landmarks.js          #   kit embutido de marcos 3D
-│   ├── cards.js · search.js  #   cards, busca, filtros
+│   ├── cards.js · search.js  #   cards, busca
 │   ├── weather.js · surf.js · tides.js
 │   ├── live.js               #   modo hoje, ponto azul, aviso de offline
 │   ├── roteiro.html          #   página do roteiro dia a dia
-│   ├── i18n.js               #   en, pt-BR, es. Para adicionar um idioma, basta um bloco
+│   ├── i18n.js               #   en, pt-BR, es. Para adicionar um idioma: um bloco aqui e o código dele em LANGUAGES, em pipeline/schema.py
 │   ├── sw.js                 #   service worker
 │   └── vendor/               #   three.js, incluído no repositório
 ├── presets/                  # oahu · minimal · dark

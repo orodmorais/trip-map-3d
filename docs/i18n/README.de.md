@@ -25,7 +25,7 @@ Ich wollte eine Reise mit etwas planen, das ich auch wirklich sehen kann. Auf ei
 
 Also habe ich es für meine eigene Reise nach O'ahu gebaut und danach ein Template für jedes Reiseziel daraus gemacht. Du beschreibst die Reise in einer Datei und bekommst eine statische Website: eine echte 3D-Karte pro Region, eine animierte Route für jeden Tag, Pins und Infokarten für jeden Ort, eine Tagesübersicht fürs Handy und das Wetter für jeden Tag.
 
-> Keine Server, keine Accounts, keine API-Keys. Rein kommt eine YAML-Datei, raus kommt ein Ordner mit statischen Dateien. GitHub Actions baut alles neu, sobald du die Reise bearbeitest.
+> Keine Server zu betreiben und keine API-Keys für den privaten Gebrauch (für den Weg ohne Code reicht ein GitHub-Account). Rein kommt eine YAML-Datei, raus kommt ein Ordner mit statischen Dateien. GitHub Actions baut alles neu, sobald du die Reise bearbeitest.
 
 **Live-Demo:** [Europe](https://orodmorais.github.io/trip-map-3d/) · [O'ahu](https://orodmorais.github.io/trip-map-3d/oahu/) · **Fünf Beispielreisen:** [examples/](../../examples/) · **Testbericht:** [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md)
 
@@ -36,7 +36,7 @@ Also habe ich es für meine eigene Reise nach O'ahu gebaut und danach ein Templa
 | | Was du bekommst |
 |---|---|
 | 🗺️ **3D-Karte** | Gelände, Meerestiefe, Flüsse, Straßen, Gebäude und Vegetation, alles aus offenen Daten und in der Farbpalette deines Themes eingefärbt |
-| 🧭 **Tagesrouten** | Die Route jedes Tages folgt echten Straßen, zeichnet sich von selbst und wird automatisch so ins Bild gesetzt, dass keine Infokarte sie verdeckt |
+| 🧭 **Tagesrouten** | Die Route jedes Tages folgt echten Straßen, zeichnet sich von selbst und wird automatisch so ins Bild gesetzt, dass sie neben der Infokarte frei bleibt |
 | 🌍 **Lange Reisen** | Weit auseinanderliegende Orte werden zu eigenen Karten, verbunden durch eine Übersicht. Lissabon, Rom und die Alpen sind drei Karten, nicht ein flacher, verschwommener Brei |
 | 📍 **Pins und Infokarten** | Jeder Ort bekommt einen Pin, eine Infokarte, ein Foto, einen Tipp und optional ein 3D-Wahrzeichen |
 | 🔎 **Suche und Filter** | Nach Name oder Typ, Akzente werden ignoriert |
@@ -65,12 +65,12 @@ Dasselbe Template, fünf verschiedene Reisen. Jeder Screenshot ist ein echter Bu
 
 Such dir den Weg aus, der zu dir passt. Am Ende steht immer dieselbe `trip.yaml`.
 
-| Für wen | So geht's | Dauer |
-|---|---|---|
-| Ohne Programmierkenntnisse | **Use this template** (Vorlage verwenden) auf GitHub, dann `trip.yaml` im Browser bearbeiten | etwa 10 Minuten |
-| Mit Claude im Chat | Füge [MASTER_PROMPT.md](../../MASTER_PROMPT.md) ein, beantworte die Fragen und füge die Datei ein, die dabei herauskommt | etwa 15 Minuten |
-| Mit Claude Code | Verweise es auf [SKILL.md](../../SKILL.md): Es interviewt dich, baut die Website, prüft Screenshots und veröffentlicht | etwa 15 Minuten |
-| Für Entwickler | Klonen, `python -m pipeline build trip.yaml` | ein paar Minuten |
+| Für wen | So geht's |
+|---|---|
+| Ohne Programmierkenntnisse | **Use this template** (Vorlage verwenden) auf GitHub, dann `trip.yaml` im Browser bearbeiten |
+| Mit Claude im Chat | Füge [MASTER_PROMPT.md](../../MASTER_PROMPT.md) ein, beantworte die Fragen und füge die Datei ein, die dabei herauskommt |
+| Mit Claude Code | Verweise es auf [SKILL.md](../../SKILL.md): Es interviewt dich, baut die Website, prüft Screenshots und veröffentlicht |
+| Für Entwickler | Klonen, `python -m pipeline build trip.yaml` |
 
 ### Ohne Code, direkt auf GitHub
 
@@ -129,7 +129,7 @@ Alle Felder mit Beispielwerten: [examples/trip.example.yaml](../../examples/trip
 |---|---|
 | Farben, Schriften, Kartenpalette | `theme.yaml` neben `trip.yaml`. Siehe [das Beispiel](../../examples/theme.example.yaml) |
 | Fertiges Theme | `preset: oahu` (warmes Papier), `minimal` (Grautöne und ein Blau) oder `dark` |
-| Handgezeichnete Titel | Eine beliebige Google Font als `fonts.display`, ausgedünnt mit `display_thin` |
+| Handgezeichnete Titel | Eine beliebige Schrift von `@fontsource` mit lateinischen Dateien als `fonts.display`, ausgedünnt mit `display_thin` |
 | Pin-Farbe und -Icon nach Typ | `pins.types: {surf: {color: "#1F7FA6", icon: wave}}` |
 | 3D-Wahrzeichen für einen Ort | `model: bridge`, `lighthouse`, `temple`, `tower`, `waterfall`, `pier`, `islet`, `airport`, `house` oder `ridge_stairs` |
 | Deine eigenen 3D-Modelle | `landmarks: landmarks.js` in `trip.yaml`. Siehe [das O'ahu-Beispiel](../../examples/oahu/landmarks.js) |
@@ -211,7 +211,7 @@ Aus [docs/TEST_REPORT.md](../../docs/TEST_REPORT.md): Jeder Tag jeder Reise wurd
 | Toledo, 1 Tag | 34 s | 3.6 MB | 0 | 60 / 60 |
 | Lissabon + Rom + Alpen, 12 Tage | 72 s | 13.8 MB | 0 | 60 / 60 |
 
-Erste Builds enthalten alle Downloads. Mit warmem Cache dauern sie 6 bis 24 s.
+Erste Builds enthalten alle Downloads. Mit warmem Cache dauern sie 6 bis 24 s. Die Zeiten der ersten Builds stammen aus dem Lauf vor den letzten Korrekturen, wie im [Testbericht](../TEST_REPORT.md) vermerkt.
 
 > [!NOTE]
 > Die Handy-Spalte ist ein Viewport in Handygröße auf einer Mac-GPU, kein echtes Handy. Bildraten auf echten Geräten wurden noch nicht gemessen. Unter 24 fps schaltet die Website von selbst auf eine leichtere Darstellung um.
@@ -238,15 +238,17 @@ trip-map-3d/
 │   ├── site.py               #   baut dist/ zusammen: Template, Daten, Theme, Schriften, Fotos
 │   └── __main__.py           #   `python -m pipeline check|build`
 ├── site/                     # statisches Frontend, kein Framework
+│   ├── app.js                #   Hauptansicht: Kamera, Pins, Filter, URL-Routen
 │   ├── world.js              #   Gelände, Meer, Vegetation, Gebäude
 │   ├── framing.js            #   setzt die Tagesroute in den freien Platz neben der Infokarte
 │   ├── routes3d.js           #   animierte Routen
+│   ├── callouts.js           #   Fotos neben der Tagesroute
 │   ├── landmarks.js          #   eingebautes Kit mit 3D-Wahrzeichen
-│   ├── cards.js · search.js  #   Infokarten, Suche, Filter
+│   ├── cards.js · search.js  #   Infokarten, Suche
 │   ├── weather.js · surf.js · tides.js
 │   ├── live.js               #   Heute-Modus, blauer Punkt, Offline-Banner
 │   ├── roteiro.html          #   Reiseplan-Seite, Tag für Tag
-│   ├── i18n.js               #   en, pt-BR, es. Eine neue Sprache ist ein einziger Block
+│   ├── i18n.js               #   en, pt-BR, es. Neue Sprache: ein Block hier und ihr Code in LANGUAGES in pipeline/schema.py
 │   ├── sw.js                 #   Service Worker
 │   └── vendor/               #   three.js, im Repo mitgeliefert
 ├── presets/                  # oahu · minimal · dark
