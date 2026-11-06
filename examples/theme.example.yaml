@@ -1,10 +1,10 @@
 # Rascunho do tema. Sem este arquivo, usa o preset padrão.
-preset: oahu                        # oahu (visual atual) | minimal | dark | retro-surf ...
+preset: oahu                        # oahu (warm paper) | minimal | dark
 
 brand:
   name: "O'ahu"
   badge: "26"                       # selo marca-texto ao lado do nome
-  badge_style: highlighter          # highlighter | pill | none
+  badge_style: highlighter
 
 fonts:                              # nomes do Google Fonts / @fontsource
   display: "Darumadrop One"         # o que aparece "de cara": marca, botões, legenda, pinos
