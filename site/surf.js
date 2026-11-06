@@ -135,12 +135,15 @@ export function initSurf({ T, go, esc, bindGo, onChange }) {
     onChange();
     try {
       const zone = encodeURIComponent(timezone);
+      const marineHost = T.apikey ? 'customer-marine-api.open-meteo.com' : 'marine-api.open-meteo.com';
+      const forecastHost = T.apikey ? 'customer-api.open-meteo.com' : 'api.open-meteo.com';
+      const key = T.apikey ? `&apikey=${encodeURIComponent(T.apikey)}` : '';
       const [marine, wind] = await Promise.all([
         getJSON(
-          `https://marine-api.open-meteo.com/v1/marine?${coords(spots.map(p => offshorePoint(p.spot)))}&hourly=${MARINE}&timezone=${zone}&forecast_days=${MARINE_DAYS}&cell_selection=sea`,
+          `https://${marineHost}/v1/marine?${coords(spots.map(p => offshorePoint(p.spot)))}&hourly=${MARINE}&timezone=${zone}&forecast_days=${MARINE_DAYS}&cell_selection=sea${key}`,
         ),
         getJSON(
-          `https://api.open-meteo.com/v1/forecast?${coords(spots.map(p => [p.spot.lat, p.spot.lon]))}&hourly=${WIND}&timezone=${zone}&forecast_days=${WIND_DAYS}`,
+          `https://${forecastHost}/v1/forecast?${coords(spots.map(p => [p.spot.lat, p.spot.lon]))}&hourly=${WIND}&timezone=${zone}&forecast_days=${WIND_DAYS}${key}`,
         ),
       ]);
       Object.assign(S, { marine: asList(marine), wind: asList(wind), at: Date.now(), status: 'ok' });

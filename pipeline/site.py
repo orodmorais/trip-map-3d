@@ -213,7 +213,7 @@ def site_data(trip: dict, theme: dict, font_names: list[str], photos: frozenset[
 def fill_template(text: str, trip: dict, theme: dict) -> str:
     brand = theme.get("brand", {})
     values = {"TITLE": trip["title"], "LANG": trip["language"], "BRAND": brand.get("name") or trip["title"],
-              "BADGE": str(brand.get("badge") or ""), "SUBTITLE": trip["subtitle"], "THEME_COLOR": theme["colors"]["ink"]}
+              "BADGE": str(brand.get("badge") or ""), "BADGE_STYLE": str(brand.get("badge_style") or "highlighter"), "SUBTITLE": trip["subtitle"], "THEME_COLOR": theme["colors"]["ink"]}
     return re.sub(r"\{\{(\w+)\}\}", lambda m: html.escape(values[m[1]], quote=True), text)
 
 

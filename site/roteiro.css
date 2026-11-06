@@ -502,3 +502,13 @@ h1 {
 .hero.nocover .hero-text {
   position: static;
 }
+
+body[data-badge='pill'] .brand b {
+  background: var(--accent);
+  border-radius: 999px;
+  padding: 1px 9px;
+  -webkit-text-stroke: 0;
+}
+body[data-badge='none'] .brand b {
+  display: none;
+}

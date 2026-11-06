@@ -72,6 +72,7 @@ const ICON = {
   nightlife: 'M6 4h12l-6 8zM12 12v7M8 20h8',
   cafe: 'M5 8h11l-1 10H6zM16 10c3 0 3 4 0 4',
 };
+Object.assign(ICON, { wave: ICON.surf, mountain: ICON.hike, plate: ICON.food });
 const FOOD_TYPES = ['food', 'cafe', 'plate', 'poke', 'musubi', 'shaveice'];
 const iconPath = type =>
   ICON[T.pins[type]?.icon] ||
@@ -137,6 +138,7 @@ scene.add(sun);
 const worldRoot = new THREE.Group();
 scene.add(worldRoot);
 
+const landmarksOn = T.modules.landmarks !== 'off' && T.modules.landmarks !== false;
 let WORLD = null;
 let activeMap = null;
 let activePlaces = [];
@@ -530,8 +532,8 @@ async function showMap(id) {
     renderer,
     SMALL,
     wanted.id,
-    places,
-    T.custom_landmarks && wanted !== OVERVIEW,
+    landmarksOn ? places : [],
+    landmarksOn && T.custom_landmarks && wanted !== OVERVIEW,
     T.ui,
   );
   if (token !== showToken) {

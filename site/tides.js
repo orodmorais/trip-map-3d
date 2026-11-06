@@ -57,7 +57,9 @@ export function initTides({ T, esc, onChange }) {
       cell_selection: 'sea',
     });
     try {
-      const response = await fetch(`https://marine-api.open-meteo.com/v1/marine?${params}`);
+      if (T.apikey) params.set('apikey', T.apikey);
+      const host = T.apikey ? 'customer-marine-api.open-meteo.com' : 'marine-api.open-meteo.com';
+      const response = await fetch(`https://${host}/v1/marine?${params}`);
       if (!response.ok) throw new Error('HTTP ' + response.status);
       S.model = (await response.json()).hourly;
       S.status = 'ok';
