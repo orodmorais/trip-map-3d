@@ -431,5 +431,6 @@ days:
     place: hnl
 modules:
   weather: true
-  surf: false
-  tides: false
+  surf: true
+  tides: true
+surf_spots: surf_spots.yaml
